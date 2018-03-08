@@ -1,0 +1,28 @@
+# Subsite configuration
+# ---------------------
+
+project.id = cwt
+project.install.modules = cwt_core
+project.name = Commissioners
+project.theme.default = europa
+project.url.production = https://ec.europa.eu/commission/commissioners
+
+# Solr configuration.
+# -------------------
+solr.type = d7_search_api
+
+# Development modules to enable
+# -----------------------------
+devel.mdls.en = devel field_ui maillog views_ui masquerade log_filter module_filter judy imagecache_defaults hotjar dt_dev security_review dt_acceptance dt_flexible_date dt_test_flexible_date administration_language_negotiation
+
+# Platform configuration.
+# -----------------------
+profile = multisite_drupal_standard
+platform.package.version = 2.4
+platform.package.db.cache = 1
+
+# Behat configuration.
+# --------------------
+behat.tags = ~@wip&&@cwt
+behat.yml.path = ${behat.dir}/behat.cwt.yml
+

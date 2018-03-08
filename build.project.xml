@@ -1,0 +1,1256 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<project name="My subsite" default="help">
+
+    <target name="build-subsite-dev" description="Build a local development version of the site."
+        depends="
+            subsite-type-dev,
+            project-subsite-backup,
+            subsite-delete-dev,
+            project-subsite-restore,
+            subsite-resources-link,
+            project-subsite-composer-dev,
+            subsite-make,
+            make-theme,
+            project-modules-devel-make">
+        <echo msg="Playbook for build-subsite-dev ended." />
+    </target>
+
+    <target name="build-subsite-dist" description="Build a site intended as a release package."
+        depends="
+            subsite-delete-dist,
+            subsite-type-tmp,
+            subsite-resources-link,
+            project-subsite-composer-no-dev,
+            subsite-make,
+            make-theme-dist,
+            subsite-type-dist,
+            subsite-resources-copy,
+            package-version-set">
+        <echo msg="Playbook for build-subsite-dist ended." />
+    </target>
+
+    <target name="move-tmp-build-to-dist">
+        <!-- Move the subsite to its destination. -->
+        <echo msg='mv "${phing.project.tmp.dir}/build/sites/all/" "${dist.build.dir}"' />
+        <exec
+                command='mv "${phing.project.tmp.dir}/build/sites/all/" "${dist.build.dir}"'
+                dir="${project.basedir}"
+                passthru="true"
+                checkreturn="true"
+        />
+
+        <echo msg="Clean up temporary build folder." />
+        <phingcall target="delete-folder">
+            <property name="folder.to.delete" value="${phing.project.tmp.dir}/build" />
+        </phingcall>
+    </target>
+
+    <!-- This phing target can be used to quickly setup a new custom branch for development -->
+    <target name="checkout">
+        <property name="repo.fullpath" value="${project.basedir}" />
+        <if>
+            <isset property="feature" />
+            <then>
+                <property name="branch" value="feature/${feature}" />
+            </then>
+        <elseif>
+            <isset property="hotfix" />
+            <then>
+                <property name="branch" value="hotfix/${hotfix}" />
+                <property name="base_branch_selected" value="1" />
+            </then>
+        </elseif>
+        <elseif>
+            <isset property="maintenance" />
+            <then>
+                <property name="branch" value="maintenance/${maintenance}" />
+            </then>
+        </elseif>
+        <else>
+            <fail msg="We only support feature, bug, maintenance branches" />
+        </else>
+        </if>
+
+        <exec command="git stash" dir="${repo.fullpath}" />
+        <echo msg="In case you had uncommitted changes in your repo we stashed them..." />
+
+        <property name="branchexists" value="" />
+        <exec command="git branch --list ${branch}" dir="${repo.fullpath}" outputProperty="branchexists"/>
+        <echo message="branchexists ${branchexists}" />
+        <if>
+            <and>
+                <isset property="base_branch_selected" />
+                <equals arg1="${branchexists}" arg2="" />
+            </and>
+            <then>
+                <gitcheckout
+                    repository="${repo.fullpath}"
+                    branchname="${base_branch}"
+                    track="origin/${base_branch}"
+                    quiet="true"
+                />
+                <echo message="We checked out ${base_branch}" />
+                <gitcheckout
+                    repository="${repo.fullpath}"
+                    branchname="${branch}"
+                    track="origin/${branch}"
+                    quiet="true"
+                    create="true"
+                />
+                <echo message="The ${branch} was created on top of ${base_branch}" />
+            </then>
+        <elseif>
+            <equals arg1="${branchexists}" arg2="" />
+            <then>
+                <gitcheckout
+                    repository="${repo.fullpath}"
+                    branchname="${base_dev_branch}"
+                    track="origin/${base_dev_branch}"
+                    quiet="true"
+                />
+                <echo message="We checked out ${base_dev_branch}" />
+                <exec command="git fetch --all" dir="${repo.fullpath}" />
+                <echo message="We fetched everything..." />
+                <gitcheckout
+                    repository="${repo.fullpath}"
+                    branchname="${branch}"
+                    track="origin/${branch}"
+                    quiet="true"
+                    create="true"
+                />
+                <echo message="The ${branch} was created on top of ${base_dev_branch}" />
+                <exec command="git push --no-verify --set-upstream origin ${branch}" dir="${repo.fullpath}" />
+                <echo message="The ${branch} was pushed on the remote." />
+            </then>
+        </elseif>
+        <else>
+            <gitcheckout
+                repository="${repo.fullpath}"
+                branchname="${branch}"
+                track="origin/${branch}"
+                quiet="true"
+            />
+            <exec command="git pull" dir="${repo.fullpath}" />
+            <echo message="The ${branch} exists, we just pulled from the remote..." />
+        </else>
+        </if>
+    </target>
+
+    <!-- Temporary solution for applying patches. This is outdate now. -->
+    <target name="patch">
+        <patch
+            patchfile="${project.basedir}/patches/languagepagesplash.patch"
+            dir="${tools}/nexteuropa_language_selector_site_popup/"
+            quiet="TRUE"
+        />
+        <exec
+            command="patch -p1 &lt; ${project.basedir}/patches/europa-theme-dt-site-issue-fixes.patch"
+            dir="${europa}"
+            escape="FALSE"
+        />
+        <echo msg="Applying patches. Please remove this phing task as soon as possible!" />
+    </target>
+
+    <target name="enable-post-commit">
+        <symlink
+            target="${subsite.resources.dir}/dt_tools/post-commit"
+            link="${project.basedir}/.git/hooks/post-commit"
+            overwrite="TRUE"
+        />
+    </target>
+
+    <target name="disable-post-commit">
+        <delete file="${project.basedir}/.git/hooks/post-commit" />
+    </target>
+
+    <target name="enable-email-sending">
+        <drush
+            command="pm-enable"
+            assume="yes"
+            root="${platform.build.dir}"
+            bin="${drush.bin}"
+            verbose="${drush.verbose}">
+            <param>smtp</param>
+            <param>dt_smtp</param>
+        </drush>
+
+        <phingcall target="features-revert">
+            <property name="features" value="dt_smtp"/>
+        </phingcall>
+
+        <echo msg="Smtp module is enabled and the configuration imported, mind that you manually need to set the password for it to work!" />
+    </target>
+
+    <target name="disable-email-sending">
+        <drush
+            command="pm-disable"
+            assume="yes"
+            root="${platform.build.dir}"
+            bin="${drush.bin}"
+            verbose="${drush.verbose}">
+            <param>smtp</param>
+            <param>dt_smtp</param>
+        </drush>
+    </target>
+    
+    <target name="delete-pipeline">
+        <if>
+            <isset property="feature" />
+            <then>
+                <property name="branch" value="feature/${feature}" />
+            </then>
+        <elseif>
+            <isset property="hotfix" />
+            <then>
+                <property name="branch" value="hotfix/${hotfix}" />
+            </then>
+        </elseif>
+        <elseif>
+            <isset property="maintenance" />
+            <then>
+                <property name="branch" value="maintenance/${maintenance}" />
+            </then>
+        </elseif>
+        <else>
+            <fail msg="We only support feature, bug, maintenance branches" />
+        </else>
+        </if>
+
+        <exec command="php dt_delete_pipeline.php ${branch}" dir="${subsite.resources.dir}/dt_tools/" />
+        <echo msg="You deleted the pipeline for the ${branch} on continuosphp" />
+    </target>
+
+    <!-- Install the needed libraries for theme development -->
+    <target name="npm-install">
+        <exec command="npm install" dir="${europa}" />
+    </target>
+
+    <!-- Run grunt in the europa root folder. -->
+    <target name="theme-dev">
+        <exec command="grunt" dir="${europa}" />
+    </target>
+
+    <!-- Make the distribution version of the subsite. -->
+    <target name="make-dist">
+        <echo msg="Delete temporary build folder." />
+        <phingcall target="delete-folder">
+            <property name="folder.to.delete" value="${phing.project.tmp.dir}/build" />
+        </phingcall>
+
+        <echo msg="Make the subsite." />
+        <!--
+            Drush make builds the site as if it is part of a complete Drupal
+            installation. The actual build is in the /sites/all subfolder. Build
+            in a temporary folder and move the subsite into place when done.
+         -->
+        <if>
+            <available file="${subsite.make}" type="file" />
+            <then>
+                <loadfile property="sitemake" file="${subsite.make}"/>
+                <propertyregex
+                        property="not.empty"
+                        subject="${sitemake}"
+                        pattern="([^#; ])(libraries\[|projects\[)"
+                        match="$1"
+                        casesensitive="false"
+                        defaultvalue="empty"/>
+                <if>
+                    <not><equals arg1="${not.empty}" arg2="empty" /></not>
+                    <then>
+                        <phingcall target="drush-make-no-core">
+                            <property name="drush.make.target.file" value="${subsite.make}" />
+                            <property name="drush.make.root" value="${phing.project.tmp.dir}/build" />
+                        </phingcall>
+                    </then>
+                    <else>
+                        <echo msg="Empty make file found. Skipping... ${not.empty}" />
+                        <mkdir dir="${phing.project.tmp.dir}/build/sites/all" />
+                    </else>
+                </if>
+            </then>
+            <else>
+                <echo msg="No make file found. Skipping..." />
+                <mkdir dir="${phing.project.tmp.dir}/build/sites/all" />
+            </else>
+        </if>
+    </target>
+
+    <target
+        name="install-dev"
+        description="Install a local development version of the subsite."
+        depends="add-dt-dev, install, enable-development-modules, force-email-conf"
+    />
+
+    <!-- Disable modules target. -->
+    <target name="disable-modules" description="Disable modules in development">
+        <property name="drupal.modules" value="${development.modules.disable}" />
+
+        <drush
+            command="pm-disable"
+            assume="yes"
+            root="${platform.build.dir}"
+            bin="${drush.bin}"
+            verbose="${drush.verbose}">
+            <param>${drupal.modules}</param>
+        </drush>
+
+          <echo message="The selected ${drupal.modules} modules have been disabled." />
+    </target>
+
+    <!-- Disable modules target. -->
+    <target name="force-email-conf" description="Force the revert of the dt_smtp feature">
+        <phingcall target="features-revert">
+            <property name="features" value="dt_smtp"/>
+        </phingcall>
+    </target>
+
+    <!-- Just an helper for reverting features. -->
+    <target name="features-revert" description="Revert features">
+        <drush
+            command="features-revert"
+            assume="yes"
+            root="${platform.build.dir}"
+            bin="${drush.bin}"
+            verbose="${drush.verbose}">
+            <option name="force" />
+            <param>${features}</param>
+        </drush>
+        <echo message="The selected ${features} features have been reverted." />
+    </target>
+
+    <!-- Install the subsite. -->
+    <target name="install" description="Install the subsite.">
+        <!--
+            Ensure the settings folder is writable so the installer can create
+            the settings.php file.
+         -->
+        <chmod mode="0755" failonerror="false" verbose="false" quiet="true">
+            <fileset dir="${platform.build.settings.dir}"/>
+        </chmod>
+        <drush
+                command="site-install"
+                assume="yes"
+                root="${platform.build.dir}"
+                bin="${drush.bin}"
+                verbose="${drush.verbose}">
+            <option name="db-url" value="${drupal.db.url}"/>
+            <option name="site-name" value="'${subsite.name}'"/>
+            <option name="account-name" value="${drupal.admin.username}"/>
+            <option name="account-pass" value="${drupal.admin.password}"/>
+            <option name="account-mail" value="${drupal.admin.email}"/>
+            <param>${platform.profile.name}</param>
+            <!-- Prevent e-mails from being sent during the installation. -->
+            <param>install_configure_form.update_status_module='array(FALSE,FALSE)'</param>
+        </drush>
+
+        <phingcall target="enable-install-modules"/>
+
+        <echo message="Set up private files directory"/>
+        <phingcall target="set-private-files"/>
+        <!-- Set the timezone -->
+        <drush command="variable-set" assume="yes" root="${platform.build.dir}" bin="${drush.bin}">
+            <param>date_default_timezone</param>
+            <param>Europe/Luxembourg</param>
+        </drush>
+        <phingcall target="set-private-files"/>
+
+        <!-- Rebuild node access after Subsites modules activation -->
+        <phingcall target="rebuild-node-access"/>
+    </target>
+
+    <!-- Create a release in the theme or tools repository -->
+    <target name="release" description="Create a new release for the Europa theme or the Europa theme tools">
+        <if>
+            <isset property="repo" />
+            <then>
+                <if>
+                    <or>
+                        <equals arg1="${repo}" arg2="ec-europa-theme" casesensitive="true" />
+                        <equals arg1="${repo}" arg2="ec-europa-theme-tools" casesensitive="true" />
+                    </or>
+                    <then>
+                        <echo message="The selected repo is ${repo}" />
+                    </then>
+                    <else>
+                        <fail msg="Please check the repo name: ${repo} that you inserted, it doesn't seem to be correct." />
+                    </else>
+                </if>
+            </then>
+        <else>
+            <fail msg="Please specifiy which repo you want to make a release in." />
+        </else>
+        </if>
+        <if>
+            <not><isset property="tag" /></not>
+            <then>
+                <fail msg="Please specifiy which tag you want to release." />
+            </then>
+        </if>
+
+        <echo message="We start, going to release on ${repo} with the tag ${tag} on a branch with this name: release/${tag}" />
+        <property name="repo.url" value="git@github.com:ec-europa/${repo}.git"/>
+        <property name="repo.fullpath" value="${phing.project.tmp.dir}/${repo}"/>
+
+        <if>
+            <not>
+                <available file="${repo.fullpath}" type="dir"/>
+            </not>
+            <then>
+                <mkdir dir="${repo.fullpath}"/>
+            </then>
+        </if>
+
+        <if>
+            <not>
+                <available file="${repo.fullpath}" type="dir"/>
+            </not>
+            <then>
+                <fail message="Please manually create the following directory: ${repo}" />
+            </then>
+        </if>
+
+        <if>
+            <not>
+                <available file="${repo.fullpath}/.git" type="dir"/>
+            </not>
+            <then>
+                <exec dir="${phing.project.tmp.dir}" command="git clone ${repo.url} ${repo}"></exec>
+                <echo msg="Repository ${repo} $cloned in '${repo.fullpath}'"/>
+            </then>
+        </if>
+
+        <property name="branchexists" value="" />
+        <property name="repo.branch" value="release/${tag}" />
+        <exec command="git branch --list ${repo.branch}" dir="${repo.fullpath}" outputProperty="branchexists"/>
+        <echo message="branchexists ${branchexists}" />
+        <if>
+            <equals arg1="${branchexists}" arg2="" />
+            <then>
+                <gitcheckout
+                        repository="${repo.fullpath}"
+                        branchname="${repo.branch}"
+                        track="origin/${repo.branch}"
+                        quiet="false"
+                        create="true"
+                />
+                <echo message="The ${repo.branch} exists already, we are going to re-tag ${tag} on the next commit, then." />
+            </then>
+            <else>
+                <gitcheckout
+                        repository="${repo.fullpath}"
+                        branchname="${repo.branch}"
+                        track="origin/${repo.branch}"
+                        quiet="false"
+                />
+                <echo message="The ${repo.branch} in the ${repo} repository was created." />
+            </else>
+        </if>
+
+        <exec dir="${repo.fullpath}" command="git pull origin ${repo.branch}"></exec>
+        <exec dir="${repo.fullpath}" command="git pull --tags"></exec>
+
+        <echo msg="Delete the content of the ${repo} folder in tmp."/>
+        <delete includeemptydirs="true" failonerror="false">
+            <fileset dir="${repo.fullpath}">
+                <patternset>
+                    <exclude name=".git"/>
+                </patternset>
+            </fileset>
+        </delete>
+
+        <echo msg="Copy files to the ${repo} folder in tmp"/>
+
+        <if>
+            <equals arg1="${repo}" arg2="ec-europa-theme" casesensitive="true" />
+            <then>
+                <copy todir="${repo.fullpath}">
+                    <fileset dir="${europa}">
+                        <patternset>
+                            <exclude name="**/libraries/js"/>
+                            <exclude name="**/vendor"/>
+                        </patternset>
+                    </fileset>
+                </copy>
+            </then>
+        <else>
+            <copy todir="${repo.fullpath}">
+                <fileset dir="${tools}"></fileset>
+            </copy>
+        </else>
+        </if>
+
+        <tstamp>
+            <format property="DATE" pattern="%c" locale="nl_NL"/>
+        </tstamp>
+
+        <!-- commit all modified / deleted files -->
+        <exec dir="${project.basedir}" command="git rev-parse --abbrev-ref HEAD" outputProperty="BRANCHNAME"></exec>
+        <exec dir="${repo.fullpath}" command="git add -A"></exec>
+        <exec dir="${repo.fullpath}"
+              command="git commit -m 'Packaged by Phing in project ${repo} from ${BRANCHNAME} on ${DATE}'"></exec>
+        <exec dir="${repo.fullpath}" command="git tag ${tag}"></exec>
+        <echo message="We set the ${tag} tag in the ${repo} repository." />
+
+        <!-- Push -->
+        <echo msg="Pushing deployment to the ${repo} on github."/>
+        <exec dir="${repo.fullpath}" command="git push --set-upstream origin ${repo.branch}"></exec>
+        <exec dir="${repo.fullpath}" command="git push --tags"></exec>
+        <echo message="The ${tag} tag has been set on the ${repo.branch} branch in the ${repo} repository." />
+    </target>
+    
+    <target name="gen-styleguide">
+        <exec command="if [ -f '${europa}/node_modules/.bin/kss' ]; then echo 'true'; else echo 'false'; fi;" outputProperty="output.IS_FILE_EXISTS" />
+        <if>
+            <equals arg1="${output.IS_FILE_EXISTS}" arg2="true" />
+            <then>
+                <!-- Get the current branch name -->
+                <exec dir="${project.basedir}" command="git rev-parse --abbrev-ref HEAD" outputProperty="BRANCHNAME"></exec>
+                <!-- Generate the styleguide -->
+                <echo msg="Generating styleguide" />
+                <exec command="grunt styleguide" dir="${europa}"/>
+                <echo msg="We generated the styleguide in ${europa} from the ${BRANCHNAME} branch." />
+            </then>
+            <else>
+                <fail message="It seems you don't have the required software to generate the styleguide, please run npm install in the Europa folder before trying again."/>
+            </else>
+        </if>
+    </target>
+
+    <target name="deploy-styleguide" depends="gen-styleguide">
+        <!-- Get the current branch name -->
+        <exec dir="${project.basedir}" command="git rev-parse --abbrev-ref HEAD" outputProperty="BRANCHNAME"></exec>
+        <!-- Copy the styleguide in a temporary folder -->
+        <echo msg="Preparing an empty dir in tmp/styleguide" />
+        <delete dir="${project.basedir}/tmp/styleguide" includeemptydirs="true" verbose="false" failonerror="false" />
+        <mkdir dir="${project.basedir}/tmp/styleguide" />
+        <echo msg="Copying styleguide files" />
+        <copy todir="${project.basedir}/tmp/styleguide/">
+          <fileset dir="${europa}/styleguide/assets/">
+          </fileset>
+        </copy>
+        <!-- Checkout the gh-pages branch -->
+        <gitcheckout
+            repository="${project.basedir}/"
+            branchname="gh-pages"
+            track="origin/${base_dev_branch}"
+            quiet="true"
+        />
+        <!-- Remove existing content -->
+        <delete>
+            <fileset dir="${project.basedir}">
+                <include name="*.html" />
+            </fileset>
+        </delete>
+
+        <echo msg="We are going to deploy the styleguide based on the ${BRANCHNAME} branch." />
+        
+        <!-- Copy the styleguide in the root of our gh-pages branch -->
+        <copy todir="${project.basedir}" overwrite="true" >
+          <fileset dir="${project.basedir}/tmp/styleguide/"></fileset>
+        </copy>
+        <!-- Let git knows about what we changed -->
+        <echo msg="Adding new files" />
+        <exec command="git add ." dir="${project.basedir}" />
+
+        <echo msg="Committing" />
+        <exec command='git commit --no-verify -am "updating styleguide"' dir="${project.basedir}" />
+        <echo msg="Pushing the styleguide to github" />
+        <exec command="git push" dir="${project.basedir}" />
+        <!-- Checkout develop at the end of the process -->
+        <exec command="git checkout ${base_dev_branch}" dir="${project.basedir}" />
+        <!-- Deployment is done -->
+        <echo msg="The styleguide has been deployed on http://ec-europa.github.io/digital-transformation-dev" />
+    </target>
+
+    <property name="acquia.repo.dir" value="acquia-cloud"/>
+    <property name="acquia.repo.url" value="ecfpfis@svn-3084.devcloud.hosting.acquia.com:ecfpfis.git"/>
+    <property name="acquia.repo" value="${phing.project.tmp.dir}/${acquia.repo.dir}"/>
+    <property name="acquia.dump" value="${phing.project.tmp.dir}/ac-cloud.mysql"/>
+    <property name="acquia.branch" value="master"/>
+    <property name="acquia.docroot" value="${acquia.repo}/docroot"/>
+
+    <target name="ac-deploy" description="Deliver code to Acquia repository" depends="build-acceptance">
+        <if>
+            <not>
+                <available file="${acquia.repo}" type="dir"/>
+            </not>
+            <then>
+                <mkdir dir="${acquia.repo}"/>
+            </then>
+        </if>
+
+        <if>
+            <not>
+                <available file="${acquia.repo}" type="dir"/>
+            </not>
+            <then>
+                <fail message="Please manually create the following directory: ${acquia.repo}"/>
+            </then>
+        </if>
+
+        <if>
+            <not>
+                <available file="${acquia.docroot}" type="dir"/>
+            </not>
+            <then>
+                <exec dir="${phing.project.tmp.dir}" command="git clone ${acquia.repo.url} ${acquia.repo.dir}"/>
+                <echo msg="acquia-cloud repository cloned to '${acquia.repo}'"/>
+            </then>
+        </if>
+
+        <exec dir="${acquia.repo}" command="git checkout ${acquia.branch}"/>
+        <exec dir="${acquia.repo}" command="git pull origin ${acquia.branch}"/>
+        <exec dir="${acquia.repo}" command="git pull --tags"/>
+
+        <echo msg="Delete acquia-cloud/docroot."/>
+        <delete includeemptydirs="true" failonerror="false">
+            <fileset dir="${acquia.docroot}">
+                <patternset>
+                    <exclude name="files"/>
+                    <exclude name="sites/*/files"/>
+                    <exclude name="sites/*/private"/>
+                    <exclude name="**/settings.php"/>
+                    <exclude name="**/sites.php/"/>
+                </patternset>
+            </fileset>
+        </delete>
+        <echo msg="Copy files to acquia-cloud/docroot."/>
+        <copy todir="${acquia.docroot}">
+            <fileset dir="${phing.project.tmp.dir}/build">
+                <patternset>
+                    <exclude name="**/settings.php"/>
+                    <exclude name="**/sites.php/"/>
+                    <exclude name="sites/*/files"/>
+                </patternset>
+            </fileset>
+        </copy>
+
+        <tstamp>
+            <format property="DATE" pattern="%c" locale="nl_NL"/>
+        </tstamp>
+
+        <!-- commit all modified / deleted files -->
+        <exec dir="${project.basedir}" command="git rev-parse --abbrev-ref HEAD" outputProperty="BRANCHNAME"/>
+        <exec dir="${acquia.repo}" command="git add -A"/>
+        <exec dir="${acquia.docroot}/sites/all/themes/europa/styleguide" command="git add --force ."/>
+        <exec dir="${acquia.repo}"
+              command="git commit -m 'Packaged by Phing in project ${project.name} from ${BRANCHNAME} on ${DATE}'"/>
+
+        <!-- Push -->
+        <echo msg="Pushing deployment to acquia."/>
+        <exec dir="${acquia.repo}" command="git push origin ${acquia.branch}"/>
+    </target>
+
+    <target name="restore-ac-db" description="Replaces the local database with the AC database." depends="add-dt-dev">
+        <drush command="sql-drop" assume="yes" root="${platform.build.dir}" bin="${drush.bin}">
+        </drush>
+        <echo msg="Database dropped."/>
+        <!-- Aliases are not handled by Phing Drush Task so we use exec. -->
+        <if>
+            <not>
+                <available file="${acquia.dump}" type="file" property="available_phing_project_ac_dump"/>
+            </not>
+            <then>
+                <phingcall target="fetch-ac-db"/>
+            </then>
+        </if>
+
+        <echo msg="Restoring AC database."/>
+        <exec command="cat ${acquia.dump} | ${drush.bin} --root=${platform.build.dir} -y sqlc"/>
+        <echo msg="AC database restored."/>
+
+        <echo msg="Set temporary file directory, create if not exists and chmod it"/>
+        <exec command="mkdir -p ${platform.build.dir}/sites/default/files/tmp"/>
+        <exec command="chmod -R 777 ${platform.build.dir}/sites/default/files"/>
+        <exec command="${drush.bin} --root=${platform.build.dir} vset file_temporary_path 'sites/default/files/tmp'"/>
+
+        <echo msg="Clearing caches"/>
+        <exec command="${drush.bin} --root=${platform.build.dir} -y cc all"/>
+        <echo msg="Caches cleared"/>
+
+        <echo msg="Rebuilding registry."/>
+        <drush command="registry-rebuild" assume="yes" root="${platform.build.dir}" bin="${drush.bin}">
+        </drush>
+        <echo msg="Registry rebuilt."/>
+
+        <drush command="user-password" assume="yes" root="${platform.build.dir}" bin="${drush.bin}">
+            <param>admin</param>
+            <option name="password">pass</option>
+        </drush>
+        <echo msg="Password for user admin is set to pass."/>
+
+        <!-- Also set editor password for easy testing. -->
+        <drush command="user-password" assume="yes" root="${platform.build.dir}" bin="${drush.bin}">
+            <param>editor_test</param>
+            <option name="password">editor_test</option>
+        </drush>
+        <echo msg="Password for user editor_test is set to pass."/>
+
+        <!-- Disable Nexteuropa Varnish -->
+        <exec command="${drush.bin} --root=${platform.build.dir} dis nexteuropa_varnish -y"/>
+        <echo msg="Nexteuropa Varnish has been disabled."/>
+
+        <!-- Disable cache -->
+        <exec command="${drush.bin} --root=${platform.build.dir} vset --exact cache 0"/>
+        <echo msg="Cache has been disabled."/>
+        <!-- Disable preprocess css -->
+        <exec command="${drush.bin} --root=${platform.build.dir} vset --exact preprocess_css 0"/>
+        <echo msg="Disable css pre processing."/>
+        <!-- Disable preprocess js -->
+        <exec command="${drush.bin} --root=${platform.build.dir} vset --exact preprocess_js 0"/>
+        <echo msg="Disable js pre processing."/>
+
+        <phingcall target="enable-development-modules"/>
+        <!-- Disable scheduled cron runs -->
+        <phingcall target="disable-cron"/>
+
+        <!--<drush command="variable-set" assume="yes" root="${platform.build.dir}" bin="${drush.bin}">-->
+            <!--<param>stage_file_proxy_origin</param>-->
+            <!--<param>${subsite.production.root}</param>-->
+        <!--</drush>-->
+
+        <!--<drush command="variable-set" assume="yes" root="${platform.build.dir}" bin="${drush.bin}">-->
+            <!--<param>stage_file_proxy_origin_dir</param>-->
+            <!--<param>sites/${subsite.production.key}/files</param>-->
+        <!--</drush>-->
+
+    </target>
+
+    <target name="fetch-ac-db" description="Downloads the AC database without revision data." depends="">
+        <delete file="${acquia.dump}"/>
+        <echo msg="Downloading remote database without revision data"/>
+        <exec command="${drush.bin} -y @${drush.alias.acquia} sql-dump --structure-tables-list=cache,cache_*,field_revision_* --gzip > ${acquia.dump}.gz"/>
+        <echo msg="AC database downloaded."/>
+        <echo msg="Unpacking database"/>
+        <exec command="gunzip ${acquia.dump}.gz"/>
+        <echo msg="Database unpacked"/>
+    </target>
+
+    <target name="fetch-full-ac-db" description="Downloads the full AC database." depends="">
+        <delete file="${acquia.dump}"/>
+        <echo msg="Downloading remote database"/>
+        <exec command="${drush.bin} -y @${drush.alias.acquia} sql-dump --structure-tables-list=cache,cache_* --gzip > ${acquia.dump}.gz"/>
+        <echo msg="AC database downloaded."/>
+        <echo msg="Unpacking database"/>
+        <exec command="gunzip ${acquia.dump}.gz"/>
+        <echo msg="Database unpacked"/>
+    </target>
+
+    <!-- Release to SVN. -->
+    <property name="release" value="${phing.project.tmp.dir}/release"/>
+    <property name="release.svn" value="${phing.project.tmp.dir}/release-svn"/>
+    <property name="release.make" value="${phing.project.tmp.dir}/release-make"/>
+    <property name="release.build" value="${phing.project.tmp.dir}/release-build"/>
+
+    <target name="release" description="Release code to MULTISITE SVN">
+        <!-- Prepare the folders. -->
+        <delete dir="${release}" includeemptydirs="true" failonerror="false"/>
+        <mkdir dir="${release}"/>
+        <delete dir="${release.svn}" includeemptydirs="true" failonerror="false"/>
+        <mkdir dir="${release.svn}"/>
+        <delete dir="${release.make}" includeemptydirs="true" failonerror="false"/>
+        <mkdir dir="${release.make}"/>
+        <delete dir="${release.build}" includeemptydirs="true" failonerror="false"/>
+        <mkdir dir="${release.build}"/>
+
+        <!-- Create new release -->
+        <phingcall target="package"/>
+
+        <!-- Checkout the SVN  -->
+        <exec dir="${project.basedir}" command="svn checkout ${phing.project.svn} ${release.svn}"></exec>
+        <delete includeemptydirs="true" failonerror="true">
+            <fileset dir="${release.svn}" excludes=".svn/**" defaultexcludes="false"/>
+        </delete>
+
+        <!--Move files to SVN-->
+        <copy todir="${release.svn}" overwrite="true">
+            <fileset dir="${release}"/>
+        </copy>
+
+        <!-- SVN remove locally deleted files  -->
+        <exec dir="${release.svn}"
+              command="svn st | grep ^! | awk '{print &quot; --force &quot;$2}' | xargs svn rm"></exec>
+        <!-- Add latest code  -->
+        <exec dir="${release.svn}" command="svn add . --force"></exec>
+
+        <input propertyname="commitmessage">Please provide a commit message:</input>
+        <echo msg="${commitmessage}"/>
+        <exec dir="${release.svn}" command="svn commit -m '${commitmessage}'"></exec>
+
+    </target>
+
+    <target name="package" description="Package files for production use (multisite installation, sites folder).">
+
+        <!-- Assemble the new release. -->
+        <phingcall target="drush-make-no-core">
+            <property name="drush.make.target.file" value="${subsite.make}"/>
+            <property name="drush.make.root" value="${release.make}"/>
+        </phingcall>
+        <copy todir="${release.build}" overwrite="true">
+            <fileset dir="${release.make}/sites/all"/>
+        </copy>
+        <copy todir="${release.build}/modules/features/custom" overwrite="true">
+            <fileset dir="${subsite.resources.features.dir}"/>
+        </copy>
+        <copy todir="${release.build}/modules/custom" overwrite="true">
+            <fileset dir="${subsite.resources.modules.dir}"/>
+        </copy>
+        <copy todir="${release.build}/themes" overwrite="true">
+            <fileset dir="${subsite.resources.themes.dir}"/>
+        </copy>
+
+        <copy todir="${release}" overwrite="false">
+            <fileset dir="${release.build}">
+                <patternset>
+                    <exclude name="**/development/**"/>
+                    <exclude name="**/node_modules/**"/>
+                    <exclude name="**/styleguide/**"/>
+                    <exclude name="**/Gruntfile.js"/>
+                    <exclude name="**/Watchfile"/>
+                    <exclude name="**/package.json"/>
+                    <exclude name="**/commissioner_OLD/**"/>
+                </patternset>
+            </fileset>
+        </copy>
+
+    </target>
+
+    <!-- Unpack the platform. -->
+    <target name="unpack-acceptance-platform" depends="download-platform">
+        <!-- Use the faster native commands on UNIX systems. -->
+        <if>
+            <os family="unix"/>
+            <then>
+                <echo msg='mkdir "${phing.project.tmp.dir}/build"'/>
+                <exec
+                        command='mkdir "${phing.project.tmp.dir}/build"'
+                        dir="${project.basedir}"
+                        passthru="true"
+                />
+                <echo msg='tar xzf "${platform.package.tarball}" -C "${phing.project.tmp.dir}/build"'/>
+                <exec
+                        command='tar xzf "${platform.package.tarball}" -C "${phing.project.tmp.dir}/build"'
+                        dir="${project.basedir}"
+                        passthru="true"
+                        checkreturn="true"
+                />
+            </then>
+            <else>
+                <untar file="${platform.package.tarball}" todir="${phing.project.tmp.dir}/build"/>
+            </else>
+        </if>
+    </target>
+
+    <!-- Symlink dt development modules module. -->
+    <target name="add-dt-dev">
+        <symlink target="${project.basedir}/resources/dev_modules"
+                 link="${platform.build.subsite.modules.dir}/dev_modules"/>
+    </target>
+
+    <!-- Download development modules. -->
+    <target name="download-development-modules-acceptance">
+        <echo msg="Download development modules."/>
+        <phingcall target="drush-make-no-core">
+            <property name="drush.make.target.file" value="${development.make.dev}"/>
+            <property name="drush.make.root" value="${phing.project.tmp.dir}/build"/>
+        </phingcall>
+    </target>
+
+    <!-- Copy development modules. -->
+    <target name="custom-development-modules">
+        <if>
+            <not>
+                <equals arg1="${development.modules.custom.acceptance}" arg2=""/>
+            </not>
+            <then>
+                <mkdir dir="${phing.project.tmp.dir}/build/sites/all/modules/develop"/>
+                <echo msg="Copy development modules."/>
+                <foreach list="${development.modules.custom.acceptance}" delimiter=" " param="module"
+                         target="copy-custom-development-modules"/>
+            </then>
+        </if>
+    </target>
+
+    <target name="copy-custom-development-modules">
+        <echo msg="Copy development module: ${module}."/>
+        <exec
+                command='cp -r ${development.modules.custom}/${module} "${phing.project.tmp.dir}/build/sites/all/modules/develop/"'
+                dir="${project.basedir}"
+                passthru="true"
+                checkreturn="true"
+        />
+    </target>
+
+    <target name="copy-acceptance-files">
+        <exec
+                command='cp -r ${dist.build.dir}/* "${phing.project.tmp.dir}/build/sites/all/"'
+                dir="${project.basedir}"
+                passthru="true"
+                checkreturn="true"
+        />
+    </target>
+
+    <target
+            name="build-acceptance"
+            description="Build a version of the subsite intended to distribute as a release package."
+            depends="build-dist, unpack-acceptance-platform, copy-acceptance-files, custom-development-modules, download-development-modules-acceptance"/>
+
+    <!-- Builds the CI environment, including the snapshot -->
+    <target
+            name="build-cphp"
+            description="Builds the project for CI testing on CPHP."
+            depends="build-dev, add-dt-dev, install, snapshot"/>
+
+    <!-- Phing target to install standard profile -->
+    <target name="generate-settings">
+        <!-- Remove old settings file -->
+        <phingcall target="unprotect-folder">
+            <property name="folder.to.unprotect" value="${platform.build.settings.dir}"/>
+        </phingcall>
+        <echo msg="Deleting settings file"/>
+        <phingcall target="delete-folder">
+            <property name="folder.to.delete" value="${platform.build.dir}/sites/default/settings.php"/>
+        </phingcall>
+        <!--
+            Ensure the settings folder is writable so the installer can create
+            the settings.php file.
+         -->
+        <chmod mode="0755" failonerror="false" verbose="false" quiet="true">
+            <fileset dir="${platform.build.settings.dir}"/>
+        </chmod>
+        <!-- Install minimal profile -->
+        <exec command='php src/Phing/generateSettings.php "${drupal.db.url}" "${platform.build.dir}"' escape="false"/>
+    </target>
+
+    <!-- Symlink the test content. -->
+    <target name="link-test-content">
+        <symlink target="${project.basedir}/resources/test_content/dt_test_content"
+                 link="${platform.build.subsite.modules.dir}/dt_test_content"/>
+    </target>
+
+    <!-- Set private files -->
+    <target name="set-private-files">
+        <mkdir dir="${platform.build.files.dir}/private_files"/>
+        <chmod mode="0755" failonerror="false" verbose="false" quiet="true">
+            <fileset dir="${platform.build.files.dir}/private_files"/>
+        </chmod>
+        <exec command="${drush.bin} --root=${platform.build.dir} vset file_temporary_path '${platform.build.files.dir}/private_files'"/>
+    </target>
+
+    <!-- Create a snapshot -->
+    <target name="snapshot" description="Creates a snapshot of the local database">
+        <if>
+            <isset property="file"/>
+            <then>
+                <if>
+                    <equals arg1="${file}" arg2=""/>
+                    <then>
+                        <fail message="Please provide a filename with parameter '-Dfile=file_name'"/>
+                    </then>
+                    <else>
+                        <property name="snapshot" value="${phing.project.tmp.dir}/${file}.sql"/>
+                    </else>
+                </if>
+            </then>
+            <else>
+                <property name="snapshot" value="${phing.project.tmp.dir}/snapshot.sql"/>
+            </else>
+        </if>
+        <if>
+            <available file="${snapshot}" type="file"/>
+            <then>
+                <echo msg="Delete file ${snapshot}"/>
+                <delete file="${snapshot}" failonerror="false"/>
+            </then>
+        </if>
+        <!-- Make snapshot -->
+        <exec command="${drush.bin} --root=${platform.build.dir} sql-dump --result-file=${snapshot}"/>
+        <echo msg="Snapshot of local database created to file ${snapshot}"/>
+    </target>
+
+    <!-- Restore a snapshot -->
+    <target name="restore-snapshot" description="Restores a snapshot of the local database">
+        <if>
+            <isset property="file"/>
+            <then>
+                <if>
+                    <equals arg1="${file}" arg2=""/>
+                    <then>
+                        <fail message="Please provide a filename with parameter '-Dfile=file_name'"/>
+                    </then>
+                    <else>
+                        <property name="snapshot" value="${phing.project.tmp.dir}/${file}.sql"/>
+                    </else>
+                </if>
+            </then>
+            <else>
+                <property name="snapshot" value="${phing.project.tmp.dir}/snapshot.sql"/>
+            </else>
+        </if>
+        <if>
+            <available file="${snapshot}" type="file"/>
+            <then>
+                <trycatch property="error">
+                    <try>
+                        <pdosqlexec url="mysql:host=${drupal.db.host}" userid="${drupal.db.user}"
+                                    password="${drupal.db.password}">
+                            CREATE DATABASE IF NOT EXISTS ${drupal.db.name};
+                        </pdosqlexec>
+                    </try>
+                    <catch>
+                        <echo message="${error}"/>
+                    </catch>
+                </trycatch>
+                <exec command="${drush.bin} --root=${platform.build.dir} -y sql-drop"/>
+                <echo msg="Local database deleted"/>
+                <exec command="cat ${snapshot} | ${drush.bin} --root=${platform.build.dir} -y sqlc"/>
+                <echo msg="Local database restored from file ${snapshot}"/>
+            </then>
+            <else>
+                <echo msg="There is no available snapshot with name ${snapshot} to restore."/>
+            </else>
+        </if>
+    </target>
+
+    <!-- Chaining target to rebuild dev environment -->
+    <target
+            name="rebuild-dev-db"
+            description="Rebuild dev environment with database"
+            depends="build-dev, add-dt-dev, generate-settings, restore-ac-db"
+    />
+
+    <!-- Revert all features to make sure we are using the latest config. -->
+    <target name="revert-dt-features">
+        <echo msg="Reverting features."/>
+        <if>
+            <equals arg1="${subsite.install.modules}" arg2="cwt_core"/>
+            <then>
+                <property name="revert.command" value="frcwt"/>
+            </then>
+            <else>
+                <property name="revert.command" value="frdt --rp"/>
+            </else>
+        </if>
+        <drush
+                command="${revert.command}"
+                assume="yes"
+                root="${platform.build.dir}"
+                bin="${drush.bin}"
+                verbose="${drush.verbose}"
+                haltonerror="false"/>
+    </target>
+
+    <!-- Reconfigures the permissons -->
+    <target name="reconfigure-dt-permissions">
+        <echo msg="Reconfiguring permissions"/>
+        <drush
+                command="dtrp"
+                assume="yes"
+                root="${platform.build.dir}"
+                bin="${drush.bin}"
+                verbose="${drush.verbose}"
+                haltonerror="false"/>
+    </target>
+
+    <!-- Clears caches -->
+    <target name="cc-all">
+        <echo msg="Clearing caches"/>
+        <drush
+                command="cc all"
+                assume="yes"
+                root="${platform.build.dir}"
+                bin="${drush.bin}"
+                verbose="${drush.verbose}"
+                haltonerror="false"/>
+    </target>
+
+    <!-- Disable scheduled cron runs -->
+    <target name="disable-cron">
+        <echo msg="Disable scheduled cron"/>
+        <drush
+                command="vset cron_safe_threshold 0"
+                assume="yes"
+                root="${platform.build.dir}"
+                bin="${drush.bin}"
+                verbose="${drush.verbose}"
+                haltonerror="false"/>
+    </target>
+
+    <target name="enable-test-modules">
+        <echo msg="Enabling and reverting test modules"/>
+        <drush
+                command="en dt_test_flexible_date"
+                assume="yes"
+                root="${platform.build.dir}"
+                bin="${drush.bin}"
+                verbose="${drush.verbose}"
+                haltonerror="false"/>
+        <drush
+                command="fr dt_test_flexible_date"
+                assume="yes"
+                root="${platform.build.dir}"
+                bin="${drush.bin}"
+                verbose="${drush.verbose}"
+                haltonerror="false"/>
+        <drush
+                command="en dt_test_flexible_date_content"
+                assume="yes"
+                root="${platform.build.dir}"
+                bin="${drush.bin}"
+                verbose="${drush.verbose}"
+                haltonerror="false"/>
+        <drush
+                command="fr dt_test_flexible_date_content"
+                assume="yes"
+                root="${platform.build.dir}"
+                bin="${drush.bin}"
+                verbose="${drush.verbose}"
+                haltonerror="false"/>
+    </target>
+
+    <!-- Phing target to disable admin menu on CPHP -->
+    <target name="disable-admin-menu">
+        <echo msg="Disabling admin-menu"/>
+        <drush
+                command="dis admin_menu"
+                assume="yes"
+                root="${platform.build.dir}"
+                bin="${drush.bin}"
+                verbose="${drush.verbose}"
+                haltonerror="false"/>
+    </target>
+
+    <!-- Make the development version of the subsite. -->
+    <target name="make-theme">
+        <echo msg="Make the subsite."/>
+
+        <phingcall target="drush-make-no-core">
+            <property name="drush.make.target.file" value="${project.basedir}/lib/themes/europa/europa.make"/>
+            <property name="drush.make.root" value="${build.platform.dir}"/>
+        </phingcall>
+    </target>
+
+    <!-- Make the development version of the subsite. -->
+    <target name="make-dev" depends="build-platform">
+        <if>
+            <available file="${subsite.make}" type="file"/>
+            <then>
+                <echo msg="Make the subsite."/>
+                <phingcall target="drush-make-no-core">
+                    <property name="drush.make.target.file" value="${subsite.make.dev}"/>
+                    <property name="drush.make.root" value="${platform.build.dir}"/>
+                </phingcall>
+            </then>
+            <else>
+                <echo msg="No make file found. Skipping..."/>
+            </else>
+        </if>
+    </target>
+
+    <!-- Symlink the source folders for easy development. -->
+    <target name="link-dev-resources">
+        <!-- Symlink our custom modules. -->
+        <symlink link="${platform.build.subsite.modules.custom.dir}" target="${subsite.resources.modules.dir}"/>
+
+        <!-- Symlink our custom features. -->
+        <if>
+            <not>
+                <available file="${platform.build.subsite.modules.dir}/features" type="dir"/>
+            </not>
+            <then>
+                <!-- Create the destination directory if it doesn't exist. -->
+                <mkdir dir="${platform.build.subsite.modules.dir}/features"/>
+            </then>
+        </if>
+        <symlink link="${platform.build.subsite.modules.features.dir}" target="${subsite.resources.features.dir}"/>
+
+        <!-- Symlink our custom themes. Delete the empty folder which is created during Drush make. -->
+        <delete dir="${platform.build.subsite.themes.dir}" includeemptydirs="true" failonerror="false"/>
+        <rel-sym link="${platform.build.subsite.themes.dir}" target="${subsite.resources.themes.dir}"/>
+        <!-- Symlink our custom PSR-4 code. -->
+        <rel-sym link="${platform.build.subsite.source.dir}" target="${subsite.resources.source.dir}"/>
+        <!-- Symlink composer configuration. -->
+        <rel-sym link="${platform.build.subsite.composer.json}" target="${subsite.resources.composer.json}"/>
+        <rel-sym link="${platform.build.subsite.composer.lock}" target="${subsite.resources.composer.lock}"/>
+    </target>
+
+    <!-- This builds the specific CI env based on the configuration. -->
+    <target name="build-specific-ci-env">
+        <phingcall target="generate-settings"/>
+        <!-- Based on the config run a separate install -->
+        <if>
+            <equals arg1="${continuousphp.behat.path}" arg2="tests/behat.brp.yml"/>
+            <then>
+                <phingcall target="restore-snapshot"/>
+                <phingcall target="enable-modules">
+                    <property name="drupal.modules" value="dt_core_brp"/>
+                </phingcall>
+                <phingcall target="post-install-tasks"/>
+            </then>
+            <elseif>
+                <equals arg1="${continuousphp.behat.path}" arg2="tests/behat.political.yml"/>
+                <then>
+                    <phingcall target="restore-snapshot"/>
+                    <phingcall target="enable-modules">
+                        <property name="drupal.modules" value="dt_core_pol"/>
+                    </phingcall>
+                    <drush command="fr" assume="yes" root="${platform.build.dir}" bin="${drush.bin}">
+                        <param>dt_event_search</param>
+                        <param>--force</param>
+                    </drush>
+                    <phingcall target="post-install-tasks"/>
+                </then>
+            </elseif>
+            <elseif>
+                <equals arg1="${continuousphp.behat.path}" arg2="tests/behat.cwt.yml"/>
+                <then>
+                    <phingcall target="install">
+                        <property name="subsite.install.modules" value="cwt_core"/>
+                    </phingcall>
+                    <phingcall target="cc-all"/>
+                    <phingcall target="revert-dt-features">
+                        <property name="subsite.install.modules" value="cwt_core"/>
+                    </phingcall>
+                    <phingcall target="cc-all"/>
+                </then>
+            </elseif>
+            <else>
+                <phingcall target="restore-snapshot"/>
+                <phingcall target="enable-modules">
+                    <property name="drupal.modules" value="dt_core_info"/>
+                </phingcall>
+                <drush command="fr" assume="yes" root="${platform.build.dir}" bin="${drush.bin}">
+                    <param>dt_event_search</param>
+                    <param>--force</param>
+                </drush>
+                <drush command="fr" assume="yes" root="${platform.build.dir}" bin="${drush.bin}">
+                    <param>dt_person</param>
+                    <param>--force</param>
+                </drush>
+                <drush command="fr" assume="yes" root="${platform.build.dir}" bin="${drush.bin}">
+                    <param>dt_gallery</param>
+                    <param>--force</param>
+                </drush>
+                <phingcall target="post-install-tasks"/>
+            </else>
+        </if>
+        <phingcall target="disable-admin-menu"/>
+    </target>
+
+    <target name="post-install-tasks">
+        <!-- Perform the other configs -->
+        <phingcall target="cc-all"/>
+        <phingcall target="revert-dt-features"/>
+        <phingcall target="enable-test-modules"/>
+        <phingcall target="reconfigure-dt-permissions"/>
+        <phingcall target="cc-all"/>
+    </target>
+
+    <!-- Make the theme for the dist.. -->
+    <target name="make-theme-dist">
+        <phingcall target="drush-make-no-core">
+            <property name="drush.make.target.file" value="${project.basedir}/lib/themes/europa/europa.make" />
+            <property name="drush.make.root" value="${phing.project.tmp.dir}/build" />
+        </phingcall>
+    </target>
+</project>
