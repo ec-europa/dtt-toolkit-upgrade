@@ -2,13 +2,12 @@
     "name": "ec-europa/subsite",
     "require": {
         "ec-europa/toolkit": "3.*",
-        "ec-europa/dtt-toolkit": "dev-master"
+        "ec-europa/dtt-toolkit-upgrade": "dev-master"
     },
     "minimum-stability": "dev",
     "scripts": {
-        "post-install-cmd": "@toolkit-upgrade @toolkit-install",
-        "post-update-cmd": "@toolkit-upgrade @toolkit-install",
-        "toolkit-install": "PROJECT=$(pwd) composer run-script toolkit-install -d ./vendor/ec-europa/toolkit",
+        "post-install-cmd": "@toolkit-upgrade",
+        "post-update-cmd": "@toolkit-upgrade",
         "toolkit-upgrade": [
             "mv resources/phpcs-custom.xml phpcs-ruleset.xml",
             "mv resources/composer.json resources/composer.lock tests/",
@@ -16,7 +15,9 @@
             "cp -Rf vendor/ec-europa/dtt-toolkit-upgrade/resources ./ && mkdir lib/modules/custom",
             "ln -s $(pwd)/lib/modules/*/ lib/modules/custom && rm lib/modules/custom/custom",
             "ln -s $(pwd)/lib/features lib/modules/features",
-            "ln -s $(pwd)/resources/dev_modules lib/modules/custom/dev_modules"
+            "ln -s $(pwd)/resources/dev_modules lib/modules/custom/dev_modules",
+            "PROJECT=$(pwd) composer run-script toolkit-install -d ./vendor/ec-europa/toolkit"
         ]
     }
 }
+
