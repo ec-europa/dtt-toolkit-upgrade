@@ -25,4 +25,4 @@ platform.package.db.cache = 0
 # --------------------
 behat.tags = ~@wip&&@cwt
 behat.yml.path = ${behat.dir}/behat.cwt.yml
-
+behat.show_cmd = open %s
