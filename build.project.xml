@@ -1050,7 +1050,7 @@
     <target name="revert-dt-features">
         <echo msg="Reverting features."/>
         <if>
-            <equals arg1="${subsite.install.modules}" arg2="cwt_core"/>
+            <equals arg1="${project.install.modules}" arg2="cwt_core"/>
             <then>
                 <property name="revert.command" value="frcwt"/>
             </then>
@@ -1232,11 +1232,11 @@
                 <equals arg1="${continuousphp.behat.path}" arg2="tests/behat.cwt.yml"/>
                 <then>
                     <phingcall target="install">
-                        <property name="subsite.install.modules" value="cwt_core"/>
+                        <property name="project.install.modules" value="cwt_core"/>
                     </phingcall>
                     <phingcall target="cc-all"/>
                     <phingcall target="revert-dt-features">
-                        <property name="subsite.install.modules" value="cwt_core"/>
+                        <property name="project.install.modules" value="cwt_core"/>
                     </phingcall>
                     <phingcall target="cc-all"/>
                 </then>
