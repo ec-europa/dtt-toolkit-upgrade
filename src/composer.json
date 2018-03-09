@@ -10,6 +10,7 @@
         "post-update-cmd": "@toolkit-upgrade",
         "toolkit-upgrade": [
             "mv resources/phpcs-custom.xml phpcs-ruleset.xml",
+            "mv resources/develop.site.make devel.make",
             "mv resources/composer.json resources/composer.lock tests/",
             "cp -Rf vendor/ec-europa/dtt-toolkit-upgrade/build.project.xml ./",
             "cp -Rf vendor/ec-europa/dtt-toolkit-upgrade/resources ./ && mkdir lib/modules/custom",
