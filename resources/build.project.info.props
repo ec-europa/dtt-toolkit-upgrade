@@ -13,13 +13,13 @@ devel.mdls.en = devel field_ui maillog views_ui masquerade log_filter module_fil
 
 # Solr configuration.
 # -------------------
-solr.type = d7_search_api
+solr.enable = 0
 
 # Platform configuration.
 # -----------------------
 profile = multisite_drupal_standard
-platform.package.version = 2.4
-platform.package.db.cache = 0
+platform.package.version = 2.3
+platform.package.db.cache = 1
 
 # Behat configuration.
 # --------------------
