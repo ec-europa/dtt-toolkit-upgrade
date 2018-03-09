@@ -1,6 +1,10 @@
 api = 2
 core = 7.x
 
+: administration_language_negotiation
+projects[administration_language_negotiation][subdir] = "contrib"
+projects[administration_language_negotiation][version] = "1.4"
+
 ; log_filter
 projects[log_filter][subdir] = "develop"
 projects[log_filter][version] = "1.4"
