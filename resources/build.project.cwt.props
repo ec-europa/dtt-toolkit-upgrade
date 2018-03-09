@@ -19,7 +19,7 @@ devel.mdls.en = devel field_ui maillog views_ui masquerade log_filter module_fil
 # -----------------------
 profile = multisite_drupal_standard
 platform.package.version = 2.4
-platform.package.db.cache = 1
+platform.package.db.cache = 0
 
 # Behat configuration.
 # --------------------

@@ -19,7 +19,7 @@ solr.type = d7_search_api
 # -----------------------
 profile = multisite_drupal_standard
 platform.package.version = 2.4
-platform.package.db.cache = 1
+platform.package.db.cache = 0
 
 # Behat configuration.
 # --------------------
