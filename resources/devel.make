@@ -83,3 +83,46 @@ projects[entity_translation][patch][] = https://www.drupal.org/files/issues/enti
 ; https://www.drupal.org/node/2877074
 projects[entity_translation][patch][] = https://www.drupal.org/files/issues/entity_translation-fix_content_translation_test-2877074-4.patch
 
+
+# Addittion to build inside theme.
+libraries[equalheight][destination] = "themes/europa"
+libraries[equalheight][directory_name] = "js/libraries"
+libraries[equalheight][download][type] = "get"
+libraries[equalheight][download][url] = "https://raw.githubusercontent.com/jorenvanhee/EqualHeight.js/master/dist/jquery.equalheight.min.js"
+
+libraries[velocity][destination] = "themes/europa"
+libraries[velocity][directory_name] = "js/libraries"
+libraries[velocity][download][type] = "get"
+libraries[velocity][download][url] = "https://raw.githubusercontent.com/julianshapiro/velocity/master/velocity.min.js"
+
+libraries[modernizr][destination] = "themes/europa"
+libraries[modernizr][directory_name] = "js/libraries/modernizr"
+libraries[modernizr][download][type] = "get"
+libraries[modernizr][download][url] = "https://github.com/Modernizr/Modernizr/archive/v2.8.3.zip"
+
+libraries[accessibleTabs][destination] = "themes/europa"
+libraries[accessibleTabs][directory_name] = "js/libraries"
+libraries[accessibleTabs][download][type] = "get"
+libraries[accessibleTabs][download][url] = "https://raw.githubusercontent.com/ec-europa/jquery-accessible-tabs-aria/master/jquery-accessible-tabs.js"
+
+libraries[scrollTo][destination] = "themes/europa"
+libraries[scrollTo][directory_name] = "js/libraries"
+libraries[scrollTo][download][type] = "get"
+libraries[scrollTo][download][url] = "https://raw.githubusercontent.com/flesler/jquery.scrollTo/2.1.2/jquery.scrollTo.min.js"
+
+libraries[superClamp][destination] = "themes/europa"
+libraries[superClamp][directory_name] = "js/libraries"
+libraries[superClamp][download][type] = "get"
+libraries[superClamp][download][url] = "https://raw.githubusercontent.com/makandra/superclamp/master/dist/superclamp.min.js"
+
+libraries[tablesorter][destination] = "themes/europa"
+libraries[tablesorter][directory_name] = "js/libraries"
+libraries[tablesorter][download][type] = "get"
+libraries[tablesorter][download][url] = "https://raw.githubusercontent.com/christianbach/tablesorter/0a3da084b41c9bc09952a8aebe406e30b8d382b4/jquery.tablesorter.min.js"
+
+; ======
+; Themes
+; ======
+
+projects[bootstrap][subdir] = "contrib"
+projects[bootstrap][version] = "3.16"

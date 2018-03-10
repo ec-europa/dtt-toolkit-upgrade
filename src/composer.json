@@ -10,8 +10,8 @@
         "post-update-cmd": "@toolkit-upgrade",
         "toolkit-upgrade": [
             "mv resources/phpcs-custom.xml phpcs-ruleset.xml",
-            "mv resources/composer.json resources/composer.lock tests/",
-            "mkdir tests/tests && mv tests/src tests/tests/src",
+            "curl https://raw.githubusercontent.com/ec-europa/toolkit/master/includes/templates/subsite/tests/composer.json > resources/composer.json",
+            "curl https://raw.githubusercontent.com/ec-europa/toolkit/master/includes/templates/subsite/tests/composer.lock > resources/composer.lock",
             "cp -Rf vendor/ec-europa/dtt-toolkit-upgrade/build.project.xml ./",
             "cp -Rf vendor/ec-europa/dtt-toolkit-upgrade/resources ./",
             "mkdir lib/modules/custom && mkdir lib/modules/features",
