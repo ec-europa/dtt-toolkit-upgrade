@@ -1134,23 +1134,6 @@
         </phingcall>
     </target>
 
-    <!-- Make the development version of the subsite. -->
-    <target name="make-dev" depends="retrieve-platform">
-        <if>
-            <available file="${subsite.make}" type="file"/>
-            <then>
-                <echo msg="Make the subsite."/>
-                <phingcall target="drush-make-no-core">
-                    <property name="drush.make.target.file" value="${subsite.make.dev}"/>
-                    <property name="drush.make.root" value="${platform.build.dir}"/>
-                </phingcall>
-            </then>
-            <else>
-                <echo msg="No make file found. Skipping..."/>
-            </else>
-        </if>
-    </target>
-
     <!-- Symlink the source folders for easy development. -->
     <target name="link-dev-resources">
         <!-- Symlink our custom modules. -->
