@@ -22,45 +22,17 @@
             subsite-resources-link,
             project-subsite-composer-no-dev,
             subsite-make,
-            make-theme-dist,
+            make-theme,
             subsite-type-dist,
             subsite-resources-copy,
             package-version-set">
         <echo msg="Playbook for build-subsite-dist ended." />
     </target>
-
-    <!-- Set up Behat. -->
-    <target name="test-behat-setup">
-        <copy todir="${behat.dir}" overwrite="true">
-            <fileset dir="${behat.dir}" casesensitive="yes">
-                <include name="*.yml.dist"/>
-            </fileset>
-            <filterchain>
-                <replacetokens begintoken="${" endtoken="}">
-                    <token key="behat.base_url" value="${behat.base_url}" />
-                    <token key="behat.browser" value="${behat.browser}" />
-                    <token key="behat.test_tags" value="${behat.tags}" />
-                    <token key="behat.subcontexts.path" value="${behat.subcontexts.path}" />
-                    <token key="behat.seleniumuri" value="${behat.wd_host.url}" />
-                    <token key="behat.show_cmd" value="${behat.show_cmd}" />
-                    <token key="behat.formatter.name" value="${behat.formatter.name}" />
-                    <token key="platform.build.dir" value="${build.platform.dir}" />
-                    <token key="flickr.key" value="${flickr.key}" />
-                    <token key="flickr.secret" value="${flickr.secret}" />
-                    <token key="drush.bin" value="${toolkit.dir.bin.drush}" />
-                    <token key="integration.server.port" value="${integration.server.port}" />
-                    <token key="varnish.server.port" value="${varnish.server.port}" />
-                </replacetokens>
-            </filterchain>
-            <mapper type="glob" from="*.yml.dist" to="*.yml" />
-        </copy>
-    </target>
-
     <target name="move-tmp-build-to-dist">
         <!-- Move the subsite to its destination. -->
-        <echo msg='mv "${phing.project.tmp.dir}/build/sites/all/" "${build.dist.dir}"' />
+        <echo msg='mv "${phing.project.tmp.dir}/build/sites/all/" "${dist.build.dir}"' />
         <exec
-                command='mv "${phing.project.tmp.dir}/build/sites/all/" "${build.dist.dir}"'
+                command='mv "${phing.project.tmp.dir}/build/sites/all/" "${dist.build.dir}"'
                 dir="${project.basedir}"
                 passthru="true"
                 checkreturn="true"
@@ -194,8 +166,8 @@
         <drush
             command="pm-enable"
             assume="yes"
-            root="${build.platform.dir}"
-            bin="${toolkit.dir.bin.drush}"
+            root="${platform.build.dir}"
+            bin="${drush.bin}"
             verbose="${drush.verbose}">
             <param>smtp</param>
             <param>dt_smtp</param>
@@ -212,8 +184,8 @@
         <drush
             command="pm-disable"
             assume="yes"
-            root="${build.platform.dir}"
-            bin="${toolkit.dir.bin.drush}"
+            root="${platform.build.dir}"
+            bin="${drush.bin}"
             verbose="${drush.verbose}">
             <param>smtp</param>
             <param>dt_smtp</param>
@@ -271,9 +243,9 @@
             in a temporary folder and move the subsite into place when done.
          -->
         <if>
-            <available file="${resources.dir.site.make}" type="file" />
+            <available file="${subsite.make}" type="file" />
             <then>
-                <loadfile property="sitemake" file="${resources.dir.site.make}"/>
+                <loadfile property="sitemake" file="${subsite.make}"/>
                 <propertyregex
                         property="not.empty"
                         subject="${sitemake}"
@@ -285,7 +257,7 @@
                     <not><equals arg1="${not.empty}" arg2="empty" /></not>
                     <then>
                         <phingcall target="drush-make-no-core">
-                            <property name="drush.make.target.file" value="${resources.dir.site.make}" />
+                            <property name="drush.make.target.file" value="${subsite.make}" />
                             <property name="drush.make.root" value="${phing.project.tmp.dir}/build" />
                         </phingcall>
                     </then>
@@ -315,8 +287,8 @@
         <drush
             command="pm-disable"
             assume="yes"
-            root="${build.platform.dir}"
-            bin="${toolkit.dir.bin.drush}"
+            root="${platform.build.dir}"
+            bin="${drush.bin}"
             verbose="${drush.verbose}">
             <param>${drupal.modules}</param>
         </drush>
@@ -336,8 +308,8 @@
         <drush
             command="features-revert"
             assume="yes"
-            root="${build.platform.dir}"
-            bin="${toolkit.dir.bin.drush}"
+            root="${platform.build.dir}"
+            bin="${drush.bin}"
             verbose="${drush.verbose}">
             <option name="force" />
             <param>${features}</param>
@@ -357,14 +329,14 @@
         <drush
                 command="site-install"
                 assume="yes"
-                root="${build.platform.dir}"
-                bin="${toolkit.dir.bin.drush}"
+                root="${platform.build.dir}"
+                bin="${drush.bin}"
                 verbose="${drush.verbose}">
-            <option name="db-url" value="${db.url}"/>
-            <option name="site-name" value="'${project.name}'"/>
-            <option name="account-name" value="${admin.username}"/>
-            <option name="account-pass" value="${admin.password}"/>
-            <option name="account-mail" value="${admin.email}"/>
+            <option name="db-url" value="${drupal.db.url}"/>
+            <option name="site-name" value="'${subsite.name}'"/>
+            <option name="account-name" value="${drupal.admin.username}"/>
+            <option name="account-pass" value="${drupal.admin.password}"/>
+            <option name="account-mail" value="${drupal.admin.email}"/>
             <param>${platform.profile.name}</param>
             <!-- Prevent e-mails from being sent during the installation. -->
             <param>install_configure_form.update_status_module='array(FALSE,FALSE)'</param>
@@ -375,7 +347,7 @@
         <echo message="Set up private files directory"/>
         <phingcall target="set-private-files"/>
         <!-- Set the timezone -->
-        <drush command="variable-set" assume="yes" root="${build.platform.dir}" bin="${toolkit.dir.bin.drush}">
+        <drush command="variable-set" assume="yes" root="${platform.build.dir}" bin="${drush.bin}">
             <param>date_default_timezone</param>
             <param>Europe/Luxembourg</param>
         </drush>
@@ -546,6 +518,9 @@
     <target name="deploy-styleguide" depends="gen-styleguide">
         <!-- Get the current branch name -->
         <exec dir="${project.basedir}" command="git rev-parse --abbrev-ref HEAD" outputProperty="BRANCHNAME"></exec>
+        <exec command="git stash" dir="${project.basedir}" />
+        <echo msg="You're about to deploy the DT styleguide from the ${BRANCHNAME} branch, we stashed local changes in this branch. You can restore them afterwards with git stash pop" />
+        
         <!-- Copy the styleguide in a temporary folder -->
         <echo msg="Preparing an empty dir in tmp/styleguide" />
         <delete dir="${project.basedir}/tmp/styleguide" includeemptydirs="true" verbose="false" failonerror="false" />
@@ -559,9 +534,11 @@
         <gitcheckout
             repository="${project.basedir}/"
             branchname="gh-pages"
-            track="origin/${base_dev_branch}"
+            track="origin/gh-pages"
             quiet="true"
         />
+        <!-- Pulling in case we are behind -->
+        <exec command="git pull" dir="${project.basedir}" />
         <!-- Remove existing content -->
         <delete>
             <fileset dir="${project.basedir}">
@@ -580,9 +557,9 @@
         <exec command="git add ." dir="${project.basedir}" />
 
         <echo msg="Committing" />
-        <exec command='git commit --no-verify -am "updating styleguide"' dir="${project.basedir}" />
-        <echo msg="Pushing the styleguide to github" />
-        <exec command="git push" dir="${project.basedir}" />
+        <exec command='git commit --no-verify -am "Updating styleguide from the ${BRANCHNAME} branch"' dir="${project.basedir}" />
+        <echo msg="Pushing, hopefully, the styleguide to github" />
+        <exec command="git push --no-verify" dir="${project.basedir}" />
         <!-- Checkout develop at the end of the process -->
         <exec command="git checkout ${base_dev_branch}" dir="${project.basedir}" />
         <!-- Deployment is done -->
@@ -669,7 +646,7 @@
     </target>
 
     <target name="restore-ac-db" description="Replaces the local database with the AC database." depends="add-dt-dev">
-        <drush command="sql-drop" assume="yes" root="${build.platform.dir}" bin="${toolkit.dir.bin.drush}">
+        <drush command="sql-drop" assume="yes" root="${platform.build.dir}" bin="${drush.bin}">
         </drush>
         <echo msg="Database dropped."/>
         <!-- Aliases are not handled by Phing Drush Task so we use exec. -->
@@ -683,60 +660,60 @@
         </if>
 
         <echo msg="Restoring AC database."/>
-        <exec command="cat ${acquia.dump} | ${toolkit.dir.bin.drush} --root=${build.platform.dir} -y sqlc"/>
+        <exec command="cat ${acquia.dump} | ${drush.bin} --root=${platform.build.dir} -y sqlc"/>
         <echo msg="AC database restored."/>
 
         <echo msg="Set temporary file directory, create if not exists and chmod it"/>
-        <exec command="mkdir -p ${build.platform.dir}/sites/default/files/tmp"/>
-        <exec command="chmod -R 777 ${build.platform.dir}/sites/default/files"/>
-        <exec command="${toolkit.dir.bin.drush} --root=${build.platform.dir} vset file_temporary_path 'sites/default/files/tmp'"/>
+        <exec command="mkdir -p ${platform.build.dir}/sites/default/files/tmp"/>
+        <exec command="chmod -R 777 ${platform.build.dir}/sites/default/files"/>
+        <exec command="${drush.bin} --root=${platform.build.dir} vset file_temporary_path 'sites/default/files/tmp'"/>
 
         <echo msg="Clearing caches"/>
-        <exec command="${toolkit.dir.bin.drush} --root=${build.platform.dir} -y cc all"/>
+        <exec command="${drush.bin} --root=${platform.build.dir} -y cc all"/>
         <echo msg="Caches cleared"/>
 
         <echo msg="Rebuilding registry."/>
-        <drush command="registry-rebuild" assume="yes" root="${build.platform.dir}" bin="${toolkit.dir.bin.drush}">
+        <drush command="registry-rebuild" assume="yes" root="${platform.build.dir}" bin="${drush.bin}">
         </drush>
         <echo msg="Registry rebuilt."/>
 
-        <drush command="user-password" assume="yes" root="${build.platform.dir}" bin="${toolkit.dir.bin.drush}">
+        <drush command="user-password" assume="yes" root="${platform.build.dir}" bin="${drush.bin}">
             <param>admin</param>
             <option name="password">pass</option>
         </drush>
         <echo msg="Password for user admin is set to pass."/>
 
         <!-- Also set editor password for easy testing. -->
-        <drush command="user-password" assume="yes" root="${build.platform.dir}" bin="${toolkit.dir.bin.drush}">
+        <drush command="user-password" assume="yes" root="${platform.build.dir}" bin="${drush.bin}">
             <param>editor_test</param>
             <option name="password">editor_test</option>
         </drush>
         <echo msg="Password for user editor_test is set to pass."/>
 
         <!-- Disable Nexteuropa Varnish -->
-        <exec command="${toolkit.dir.bin.drush} --root=${build.platform.dir} dis nexteuropa_varnish -y"/>
+        <exec command="${drush.bin} --root=${platform.build.dir} dis nexteuropa_varnish -y"/>
         <echo msg="Nexteuropa Varnish has been disabled."/>
 
         <!-- Disable cache -->
-        <exec command="${toolkit.dir.bin.drush} --root=${build.platform.dir} vset --exact cache 0"/>
+        <exec command="${drush.bin} --root=${platform.build.dir} vset --exact cache 0"/>
         <echo msg="Cache has been disabled."/>
         <!-- Disable preprocess css -->
-        <exec command="${toolkit.dir.bin.drush} --root=${build.platform.dir} vset --exact preprocess_css 0"/>
+        <exec command="${drush.bin} --root=${platform.build.dir} vset --exact preprocess_css 0"/>
         <echo msg="Disable css pre processing."/>
         <!-- Disable preprocess js -->
-        <exec command="${toolkit.dir.bin.drush} --root=${build.platform.dir} vset --exact preprocess_js 0"/>
+        <exec command="${drush.bin} --root=${platform.build.dir} vset --exact preprocess_js 0"/>
         <echo msg="Disable js pre processing."/>
 
         <phingcall target="enable-development-modules"/>
         <!-- Disable scheduled cron runs -->
         <phingcall target="disable-cron"/>
 
-        <!--<drush command="variable-set" assume="yes" root="${build.platform.dir}" bin="${toolkit.dir.bin.drush}">-->
+        <!--<drush command="variable-set" assume="yes" root="${platform.build.dir}" bin="${drush.bin}">-->
             <!--<param>stage_file_proxy_origin</param>-->
             <!--<param>${subsite.production.root}</param>-->
         <!--</drush>-->
 
-        <!--<drush command="variable-set" assume="yes" root="${build.platform.dir}" bin="${toolkit.dir.bin.drush}">-->
+        <!--<drush command="variable-set" assume="yes" root="${platform.build.dir}" bin="${drush.bin}">-->
             <!--<param>stage_file_proxy_origin_dir</param>-->
             <!--<param>sites/${subsite.production.key}/files</param>-->
         <!--</drush>-->
@@ -746,7 +723,7 @@
     <target name="fetch-ac-db" description="Downloads the AC database without revision data." depends="">
         <delete file="${acquia.dump}"/>
         <echo msg="Downloading remote database without revision data"/>
-        <exec command="${toolkit.dir.bin.drush} -y @${drush.alias.acquia} sql-dump --structure-tables-list=cache,cache_*,field_revision_* --gzip > ${acquia.dump}.gz"/>
+        <exec command="${drush.bin} -y @${drush.alias.acquia} sql-dump --structure-tables-list=cache,cache_*,field_revision_* --gzip > ${acquia.dump}.gz"/>
         <echo msg="AC database downloaded."/>
         <echo msg="Unpacking database"/>
         <exec command="gunzip ${acquia.dump}.gz"/>
@@ -756,7 +733,7 @@
     <target name="fetch-full-ac-db" description="Downloads the full AC database." depends="">
         <delete file="${acquia.dump}"/>
         <echo msg="Downloading remote database"/>
-        <exec command="${toolkit.dir.bin.drush} -y @${drush.alias.acquia} sql-dump --structure-tables-list=cache,cache_* --gzip > ${acquia.dump}.gz"/>
+        <exec command="${drush.bin} -y @${drush.alias.acquia} sql-dump --structure-tables-list=cache,cache_* --gzip > ${acquia.dump}.gz"/>
         <echo msg="AC database downloaded."/>
         <echo msg="Unpacking database"/>
         <exec command="gunzip ${acquia.dump}.gz"/>
@@ -810,7 +787,7 @@
 
         <!-- Assemble the new release. -->
         <phingcall target="drush-make-no-core">
-            <property name="drush.make.target.file" value="${resources.dir.site.make}"/>
+            <property name="drush.make.target.file" value="${subsite.make}"/>
             <property name="drush.make.root" value="${release.make}"/>
         </phingcall>
         <copy todir="${release.build}" overwrite="true">
@@ -910,7 +887,7 @@
 
     <target name="copy-acceptance-files">
         <exec
-                command='cp -r ${build.dist.dir}/* "${phing.project.tmp.dir}/build/sites/all/"'
+                command='cp -r ${dist.build.dir}/* "${phing.project.tmp.dir}/build/sites/all/"'
                 dir="${project.basedir}"
                 passthru="true"
                 checkreturn="true"
@@ -936,7 +913,7 @@
         </phingcall>
         <echo msg="Deleting settings file"/>
         <phingcall target="delete-folder">
-            <property name="folder.to.delete" value="${build.platform.dir}/sites/default/settings.php"/>
+            <property name="folder.to.delete" value="${platform.build.dir}/sites/default/settings.php"/>
         </phingcall>
         <!--
             Ensure the settings folder is writable so the installer can create
@@ -946,7 +923,7 @@
             <fileset dir="${platform.build.settings.dir}"/>
         </chmod>
         <!-- Install minimal profile -->
-        <exec command='php src/Phing/generateSettings.php "${db.url}" "${build.platform.dir}"' escape="false"/>
+        <exec command='php src/Phing/generateSettings.php "${drupal.db.url}" "${platform.build.dir}"' escape="false"/>
     </target>
 
     <!-- Symlink the test content. -->
@@ -961,7 +938,7 @@
         <chmod mode="0755" failonerror="false" verbose="false" quiet="true">
             <fileset dir="${platform.build.files.dir}/private_files"/>
         </chmod>
-        <exec command="${toolkit.dir.bin.drush} --root=${build.platform.dir} vset file_temporary_path '${platform.build.files.dir}/private_files'"/>
+        <exec command="${drush.bin} --root=${platform.build.dir} vset file_temporary_path '${platform.build.files.dir}/private_files'"/>
     </target>
 
     <!-- Create a snapshot -->
@@ -991,7 +968,7 @@
             </then>
         </if>
         <!-- Make snapshot -->
-        <exec command="${toolkit.dir.bin.drush} --root=${build.platform.dir} sql-dump --result-file=${snapshot}"/>
+        <exec command="${drush.bin} --root=${platform.build.dir} sql-dump --result-file=${snapshot}"/>
         <echo msg="Snapshot of local database created to file ${snapshot}"/>
     </target>
 
@@ -1019,18 +996,18 @@
             <then>
                 <trycatch property="error">
                     <try>
-                        <pdosqlexec url="mysql:host=${db.host}" userid="${db.user}"
-                                    password="${db.password}">
-                            CREATE DATABASE IF NOT EXISTS ${db.name};
+                        <pdosqlexec url="mysql:host=${drupal.db.host}" userid="${drupal.db.user}"
+                                    password="${drupal.db.password}">
+                            CREATE DATABASE IF NOT EXISTS ${drupal.db.name};
                         </pdosqlexec>
                     </try>
                     <catch>
                         <echo message="${error}"/>
                     </catch>
                 </trycatch>
-                <exec command="${toolkit.dir.bin.drush} --root=${build.platform.dir} -y sql-drop"/>
+                <exec command="${drush.bin} --root=${platform.build.dir} -y sql-drop"/>
                 <echo msg="Local database deleted"/>
-                <exec command="cat ${snapshot} | ${toolkit.dir.bin.drush} --root=${build.platform.dir} -y sqlc"/>
+                <exec command="cat ${snapshot} | ${drush.bin} --root=${platform.build.dir} -y sqlc"/>
                 <echo msg="Local database restored from file ${snapshot}"/>
             </then>
             <else>
@@ -1050,7 +1027,7 @@
     <target name="revert-dt-features">
         <echo msg="Reverting features."/>
         <if>
-            <equals arg1="${project.install.modules}" arg2="cwt_core"/>
+            <equals arg1="${subsite.install.modules}" arg2="cwt_core"/>
             <then>
                 <property name="revert.command" value="frcwt"/>
             </then>
@@ -1061,8 +1038,8 @@
         <drush
                 command="${revert.command}"
                 assume="yes"
-                root="${build.platform.dir}"
-                bin="${toolkit.dir.bin.drush}"
+                root="${platform.build.dir}"
+                bin="${drush.bin}"
                 verbose="${drush.verbose}"
                 haltonerror="false"/>
     </target>
@@ -1073,8 +1050,8 @@
         <drush
                 command="dtrp"
                 assume="yes"
-                root="${build.platform.dir}"
-                bin="${toolkit.dir.bin.drush}"
+                root="${platform.build.dir}"
+                bin="${drush.bin}"
                 verbose="${drush.verbose}"
                 haltonerror="false"/>
     </target>
@@ -1085,8 +1062,8 @@
         <drush
                 command="cc all"
                 assume="yes"
-                root="${build.platform.dir}"
-                bin="${toolkit.dir.bin.drush}"
+                root="${platform.build.dir}"
+                bin="${drush.bin}"
                 verbose="${drush.verbose}"
                 haltonerror="false"/>
     </target>
@@ -1097,8 +1074,8 @@
         <drush
                 command="vset cron_safe_threshold 0"
                 assume="yes"
-                root="${build.platform.dir}"
-                bin="${toolkit.dir.bin.drush}"
+                root="${platform.build.dir}"
+                bin="${drush.bin}"
                 verbose="${drush.verbose}"
                 haltonerror="false"/>
     </target>
@@ -1108,29 +1085,29 @@
         <drush
                 command="en dt_test_flexible_date"
                 assume="yes"
-                root="${build.platform.dir}"
-                bin="${toolkit.dir.bin.drush}"
+                root="${platform.build.dir}"
+                bin="${drush.bin}"
                 verbose="${drush.verbose}"
                 haltonerror="false"/>
         <drush
                 command="fr dt_test_flexible_date"
                 assume="yes"
-                root="${build.platform.dir}"
-                bin="${toolkit.dir.bin.drush}"
+                root="${platform.build.dir}"
+                bin="${drush.bin}"
                 verbose="${drush.verbose}"
                 haltonerror="false"/>
         <drush
                 command="en dt_test_flexible_date_content"
                 assume="yes"
-                root="${build.platform.dir}"
-                bin="${toolkit.dir.bin.drush}"
+                root="${platform.build.dir}"
+                bin="${drush.bin}"
                 verbose="${drush.verbose}"
                 haltonerror="false"/>
         <drush
                 command="fr dt_test_flexible_date_content"
                 assume="yes"
-                root="${build.platform.dir}"
-                bin="${toolkit.dir.bin.drush}"
+                root="${platform.build.dir}"
+                bin="${drush.bin}"
                 verbose="${drush.verbose}"
                 haltonerror="false"/>
     </target>
@@ -1141,31 +1118,31 @@
         <drush
                 command="dis admin_menu"
                 assume="yes"
-                root="${build.platform.dir}"
-                bin="${toolkit.dir.bin.drush}"
+                root="${platform.build.dir}"
+                bin="${drush.bin}"
                 verbose="${drush.verbose}"
                 haltonerror="false"/>
     </target>
 
-    <!-- Make the development version of the subsite. -->
+    <!-- Make europa theme resources. -->
     <target name="make-theme">
-        <echo msg="Make the subsite."/>
-
         <phingcall target="drush-make-no-core">
-            <property name="drush.make.target.file" value="${project.basedir}/lib/themes/europa/europa.make"/>
-            <property name="drush.make.root" value="${build.platform.dir}"/>
+            <property name="make-file" value="${project.basedir}/lib/themes/europa/europa.make" />
+            <property name="make-folder" value="${build.${build-type}.dir}" />
+            <property name="make-destination" value="" />
+            <property name="overwrite" value="" />
         </phingcall>
     </target>
 
     <!-- Make the development version of the subsite. -->
-    <target name="make-dev" depends="build-platform">
+    <target name="make-dev" depends="retrieve-platform">
         <if>
-            <available file="${resources.dir.site.make}" type="file"/>
+            <available file="${subsite.make}" type="file"/>
             <then>
                 <echo msg="Make the subsite."/>
                 <phingcall target="drush-make-no-core">
-                    <property name="drush.make.target.file" value="${resources.dir.site.make.dev}"/>
-                    <property name="drush.make.root" value="${build.platform.dir}"/>
+                    <property name="drush.make.target.file" value="${subsite.make.dev}"/>
+                    <property name="drush.make.root" value="${platform.build.dir}"/>
                 </phingcall>
             </then>
             <else>
@@ -1221,7 +1198,7 @@
                     <phingcall target="enable-modules">
                         <property name="drupal.modules" value="dt_core_pol"/>
                     </phingcall>
-                    <drush command="fr" assume="yes" root="${build.platform.dir}" bin="${toolkit.dir.bin.drush}">
+                    <drush command="fr" assume="yes" root="${platform.build.dir}" bin="${drush.bin}">
                         <param>dt_event_search</param>
                         <param>--force</param>
                     </drush>
@@ -1232,11 +1209,11 @@
                 <equals arg1="${continuousphp.behat.path}" arg2="tests/behat.cwt.yml"/>
                 <then>
                     <phingcall target="install">
-                        <property name="project.install.modules" value="cwt_core"/>
+                        <property name="subsite.install.modules" value="cwt_core"/>
                     </phingcall>
                     <phingcall target="cc-all"/>
                     <phingcall target="revert-dt-features">
-                        <property name="project.install.modules" value="cwt_core"/>
+                        <property name="subsite.install.modules" value="cwt_core"/>
                     </phingcall>
                     <phingcall target="cc-all"/>
                 </then>
@@ -1246,15 +1223,15 @@
                 <phingcall target="enable-modules">
                     <property name="drupal.modules" value="dt_core_info"/>
                 </phingcall>
-                <drush command="fr" assume="yes" root="${build.platform.dir}" bin="${toolkit.dir.bin.drush}">
+                <drush command="fr" assume="yes" root="${platform.build.dir}" bin="${drush.bin}">
                     <param>dt_event_search</param>
                     <param>--force</param>
                 </drush>
-                <drush command="fr" assume="yes" root="${build.platform.dir}" bin="${toolkit.dir.bin.drush}">
+                <drush command="fr" assume="yes" root="${platform.build.dir}" bin="${drush.bin}">
                     <param>dt_person</param>
                     <param>--force</param>
                 </drush>
-                <drush command="fr" assume="yes" root="${build.platform.dir}" bin="${toolkit.dir.bin.drush}">
+                <drush command="fr" assume="yes" root="${platform.build.dir}" bin="${drush.bin}">
                     <param>dt_gallery</param>
                     <param>--force</param>
                 </drush>
@@ -1271,13 +1248,5 @@
         <phingcall target="enable-test-modules"/>
         <phingcall target="reconfigure-dt-permissions"/>
         <phingcall target="cc-all"/>
-    </target>
-
-    <!-- Make the theme for the dist.. -->
-    <target name="make-theme-dist">
-        <phingcall target="drush-make-no-core">
-            <property name="drush.make.target.file" value="${project.basedir}/lib/themes/europa/europa.make" />
-            <property name="drush.make.root" value="${phing.project.tmp.dir}/build" />
-        </phingcall>
     </target>
 </project>
