@@ -1049,6 +1049,13 @@
     <target name="reconfigure-dt-permissions">
         <echo msg="Reconfiguring permissions"/>
         <drush
+                command="en dt_roles_permissions_import"
+                assume="yes"
+                root="${platform.build.dir}"
+                bin="${drush.bin}"
+                verbose="${drush.verbose}"
+                haltonerror="false"/>
+        <drush
                 command="dtrp"
                 assume="yes"
                 root="${platform.build.dir}"
