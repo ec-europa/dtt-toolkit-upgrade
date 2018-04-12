@@ -1,0 +1,22 @@
+{
+  "require": {
+    "guzzlehttp/guzzle": "^6.2.1"
+  },
+  "require-dev": {
+    "behat/behat": "~3.3.0",
+    "drupal/drupal-extension": "~3.3.0",
+    "drush/drush": "8.x",
+    "symfony/console": "2.8.12"
+  },
+  "autoload": {
+    "psr-4": {
+      "Drupal\\nexteuropa\\": "src"
+    }
+  },
+  "config": {
+    "bin-dir": "bin",
+    "platform": {
+      "php": "5.6"
+    }
+  }
+}

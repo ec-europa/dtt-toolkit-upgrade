@@ -18,11 +18,11 @@ solr.enable = 0
 # Platform configuration.
 # -----------------------
 profile = multisite_drupal_standard
-platform.package.version = 2.3
+platform.package.version = 2.4.92
 platform.package.db.cache = 1
 
 # Behat configuration.
 # --------------------
-behat.tags = ~@wip&&@political
+behat.tags = @political
 behat.yml.path = ${behat.dir}/behat.political.yml
 behat.show_cmd = open %s

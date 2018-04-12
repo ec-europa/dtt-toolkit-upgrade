@@ -10,8 +10,9 @@
         "post-update-cmd": "@toolkit-upgrade",
         "toolkit-upgrade": [
             "mv resources/phpcs-custom.xml phpcs-ruleset.xml",
-            "cp -Rf vendor/ec-europa/dtt-toolkit-upgrade/build.project.xml ./",
+            "cp -Rf vendor/ec-europa/dtt-toolkit-upgrade/build.project.* ./",
             "cp -Rf vendor/ec-europa/dtt-toolkit-upgrade/resources ./",
+            "cp -Rf vendor/ec-europa/dtt-toolkit-upgrade/tests ./",
             "mkdir lib/modules/custom && mkdir lib/modules/features",
             "ln -s $(pwd)/lib/modules/*/ lib/modules/custom && rm lib/modules/custom/custom",
             "ln -s $(pwd)/lib/features/*/ lib/modules/features",
