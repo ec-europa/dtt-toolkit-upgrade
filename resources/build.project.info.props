@@ -5,7 +5,7 @@ project.id = info
 project.install.modules = dt_core_info
 project.name = Information
 project.theme.default = europa
-project.url.production = https://ec.europa.eu/info/index_en
+project.url.production = https://ec.europa.eu/info
 
 # Development modules to enable
 # -----------------------------
@@ -18,11 +18,11 @@ solr.enable = 0
 # Platform configuration.
 # -----------------------
 profile = multisite_drupal_standard
-platform.package.version = 2.3
+platform.package.version = 2.4.92
 platform.package.db.cache = 1
 
 # Behat configuration.
 # --------------------
-behat.tags = ~@wip&&@information,@shared
+behat.tags = @information,@shared
 behat.yml.path = ${behat.dir}/behat.yml
 behat.show_cmd = open %s
