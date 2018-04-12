@@ -1041,7 +1041,8 @@
                 root="${platform.build.dir}"
                 bin="${drush.bin}"
                 verbose="${drush.verbose}"
-                haltonerror="false"/>
+                haltonerror="false"
+                strict="0"/>
     </target>
 
     <!-- Reconfigures the permissons -->
