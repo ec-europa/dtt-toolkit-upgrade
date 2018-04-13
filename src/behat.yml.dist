@@ -2,4 +2,4 @@
           chrome:
             switches:
               - "--headless"
-             - "--disable-gpu"
+              - "--disable-gpu"
