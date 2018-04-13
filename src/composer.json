@@ -9,27 +9,17 @@
         "post-install-cmd": "@toolkit-upgrade",
         "post-update-cmd": "@toolkit-upgrade",
         "toolkit-upgrade": [
-            "echo Additions to PHPCS ruleset:",
-            "echo =====================================================================================================",
             "mv resources/phpcs-custom.xml phpcs-ruleset.xml",
             "sed -i '$ d' phpcs-ruleset.xml",
             "echo \"$(cat vendor/ec-europa/dtt-toolkit-upgrade/src/phpcs-ruleset.xml)\" >> phpcs-ruleset.xml",
-            "echo Copy over new resources:",
-            "echo =====================================================================================================",
             "cp -Rf vendor/ec-europa/dtt-toolkit-upgrade/build.project.* ./",
             "cp -Rf vendor/ec-europa/dtt-toolkit-upgrade/resources ./",
             "cp -Rf vendor/ec-europa/dtt-toolkit-upgrade/tests ./",
-            "echo Add chrome capabilities on behat.yml.dist files:",
-            "echo =====================================================================================================",
             "sed -i '/      selenium2:/ r vendor/ec-europa/dtt-toolkit-upgrade/src/behat.yml.dist' tests/behat.*.dist",
-            "echo Symlink modules and themes to new location:",
-            "echo =====================================================================================================",
             "mkdir lib/modules/custom && mkdir lib/modules/features",
             "ln -s $(pwd)/lib/modules/*/ lib/modules/custom && rm lib/modules/custom/custom",
             "ln -s $(pwd)/lib/features/*/ lib/modules/features",
             "ln -s $(pwd)/resources/dev_modules lib/modules/custom/dev_modules",
-            "echo Install toolkit:",
-            "echo =====================================================================================================",
             "PROJECT=$(pwd) composer run-script toolkit-install -d ./vendor/ec-europa/toolkit"
         ]
     }
