@@ -1,0 +1,12 @@
+
+    <!-- Europa theme exclusions -->
+    <exclude-pattern>**/themes/europa/js/libraries/**</exclude-pattern>
+    <exclude-pattern>**/themes/europa/fonts/**</exclude-pattern>
+    <exclude-pattern>**/themes/europa/styleguide/**</exclude-pattern>
+    <exclude-pattern>**/themes/europa/js/components/**</exclude-pattern>
+    <exclude-pattern>**/themes/europa/bootstrap-sass/**</exclude-pattern>
+    <exclude-pattern>**/dt_STARTERKIT/**</exclude-pattern>
+    <exclude-pattern>**/dt_tools/**</exclude-pattern>
+    <exclude-pattern>**/dev_modules/**</exclude-pattern>
+
+</ruleset>

@@ -1,0 +1,5 @@
+        capabilities:
+          chrome:
+            switches:
+              - "--headless"
+             - "--disable-gpu"
