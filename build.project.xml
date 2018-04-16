@@ -114,7 +114,20 @@
         <exec command="${drush.bin} @${drush.alias.default} --root=${platform.build.dir} -y cc all" />
     </target>
 
-    
+    <!-- Run Behat tests. -->
+    <target name="test-behat-exec">
+        <behat
+            executable="${behat.bin}"
+            config="${absname}"
+            strict="${behat.options.strict}"
+            verbose="yes"
+            colors="yes"
+            passthru="1"
+            haltonerror="${behat.options.haltonerror}"
+            checkreturn="1"
+        />
+    </target>
+
     <!-- Set up Behat. -->
     <target name="test-behat-setup">
         <if>
