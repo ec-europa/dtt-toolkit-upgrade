@@ -43,6 +43,7 @@
     <target name="install-clean">
         <!-- Install core first -->
         <phingcall target="project-subsite-files-setup" />
+        <phingcall target="drush-aliases-generate" />
         <phingcall target="project.install-clean">
             <property name="project.install.modules" value="dt_core" />
         </phingcall>
