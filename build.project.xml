@@ -45,14 +45,17 @@
         <phingcall target="project-subsite-files-setup" />
         <phingcall target="drush-aliases-generate" />
         <if>
-            <not>
-                <equals arg1="${project.id}" arg2="cwt"/>
-            </not>
+            <equals arg1="${project.id}" arg2="cwt"/>
             <then>
+                <phingcall target="project.install-clean">
+                    <property name="project.install.modules" value="" />
+                </phingcall>
+            </then>
+            <else>
                 <phingcall target="project.install-clean">
                     <property name="project.install.modules" value="dt_core" />
                 </phingcall>
-            </then>
+            </else>
         </if>
         <!-- Based on the config run a separate install -->
         <if>
