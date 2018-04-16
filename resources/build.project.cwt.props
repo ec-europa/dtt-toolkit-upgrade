@@ -19,7 +19,6 @@ solr.enable = 0
 # -----------------------
 profile = multisite_drupal_standard
 platform.package.version = 2.4.92
-platform.package.db.cache = 0
 
 # Behat configuration.
 # --------------------
