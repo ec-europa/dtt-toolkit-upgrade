@@ -44,9 +44,16 @@
         <!-- Install core first -->
         <phingcall target="project-subsite-files-setup" />
         <phingcall target="drush-aliases-generate" />
-        <phingcall target="project.install-clean">
-            <property name="project.install.modules" value="dt_core" />
-        </phingcall>
+        <if>
+            <not>
+                <equals arg1="${project.id}" arg2="cwt"/>
+            </not>
+            <then>
+                <phingcall target="project.install-clean">
+                    <property name="project.install.modules" value="dt_core" />
+                </phingcall>
+            </then>
+        </if>
         <!-- Based on the config run a separate install -->
         <if>
             <equals arg1="${project.id}" arg2="brp"/>
