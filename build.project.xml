@@ -29,6 +29,16 @@
         <echo msg="Playbook for build-subsite-dist ended." />
     </target>
 
+    <target name="build-subsite-dev" description="Build a local development version of the site."
+        depends="
+            subsite-type-dev,
+            subsite-resources-link,
+            project-subsite-composer-dev,
+            subsite-make,
+            project-modules-devel-make">
+        <echo msg="Playbook for build-subsite-dev ended." />
+    </target>
+
     <!-- Install clean per project id. -->
     <target name="install-clean">
         <!-- Install core first -->
