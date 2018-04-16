@@ -16,7 +16,7 @@
             "cp -Rf vendor/ec-europa/dtt-toolkit-upgrade/resources ./",
             "cp -Rf vendor/ec-europa/dtt-toolkit-upgrade/tests ./",
             "sed -i '/      selenium2:/ r vendor/ec-europa/dtt-toolkit-upgrade/src/behat.yml.dist' tests/behat.*.dist",
-            "find tests/features -type f -exec sed -i 's/ \\@javascript/ /g' {} \\;",
+            "sed -i '/And I wait for AJAX to finish/d' tests/features/**/*.feature",
             "mkdir lib/modules/custom && mkdir lib/modules/features",
             "ln -s $(pwd)/lib/modules/*/ lib/modules/custom && rm lib/modules/custom/custom",
             "ln -s $(pwd)/lib/features/*/ lib/modules/features",

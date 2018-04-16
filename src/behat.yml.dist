@@ -1,5 +1,2 @@
-        capabilities:
-          chrome:
-            switches:
-              - "--headless"
-              - "--disable-gpu"
+        browser: chrome
+        capabilities: { "browser": "chrome", "version": "*", 'chrome': {'switches':['--start-maximized', "--headless", "--disable-gpu"]}}
