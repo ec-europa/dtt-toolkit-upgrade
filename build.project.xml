@@ -109,10 +109,9 @@
         <phingcall target="disable-admin-menu"/>
         <!-- Bad hack to fix issue in javascript behat tests where there is an
              undefined index. For example check: https://ec.europa.eu/info/events
-             DO NOT FOREGET TO REMOVE QUERY AND CC ALL!!!
-        -->
-        <exec command="${drush.bin} @${drush.alias.default} --root=${platform.build.dir} sqlq 'update system set status=0 where name=\"views_ajax_history\";'" />
-        <exec command="${drush.bin} @${drush.alias.default} --root=${platform.build.dir} -y cc all"/>
+             DO NOT FOREGET TO REMOVE QUERY AND CC ALL!!! -->
+        <exec command="${drush.bin} @${drush.alias.default} --root=${platform.build.dir} sqlq 'update system set status=0 where name=&quot;views_ajax_history&quot;';" />
+        <exec command="${drush.bin} @${drush.alias.default} --root=${platform.build.dir} -y cc all" />
     </target>
 
     
