@@ -23,6 +23,6 @@ platform.package.db.cache = 1
 
 # Behat configuration.
 # --------------------
-behat.tags = &@cwt
+behat.test_tags = @cwt
 behat.yml.path = ${behat.dir}/behat.cwt.yml
 behat.show_cmd = open %s

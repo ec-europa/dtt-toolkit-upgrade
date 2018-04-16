@@ -23,6 +23,6 @@ platform.package.db.cache = 1
 
 # Behat configuration.
 # --------------------
-behat.tags = @political
+behat.test_tags = @political
 behat.yml.path = ${behat.dir}/behat.political.yml
 behat.show_cmd = open %s
