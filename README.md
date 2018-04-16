@@ -33,7 +33,7 @@ echo \"$(cat vendor/ec-europa/dtt-toolkit-upgrade/src/phpcs-ruleset.xml)\" >> ph
 ### Copy resources
 
 We copy all resources needed to allow your project to run toolkit in Drone:
-```
+```shell
 # Copy the general build files into the root folder.
 # - props file contains property mappings from starterkit to toolkit.
 # - xml file contains new build targets to allow Drone to build on toolkit.
@@ -50,7 +50,7 @@ with this is to also define your `bin-dir` as "bin". We are executing the tests
 from within the tests folder because the resources will actually be deployed to
 production:
 
-```
+```shell
 # Copy the composer files with the bin-dir added to it.
 cp -Rf vendor/ec-europa/dtt-toolkit-upgrade/tests ./
 # Add lines with brower and capabiities to run on headless chrome.
@@ -67,7 +67,7 @@ directories for `custom` modules and `features` under `Lib/modules`.
 
 After we have the folders we symlink all individual modules to the new location.
 
-```
+```shell
 # Make new location directories.
 mkdir lib/modules/custom && mkdir lib/modules/features
 # Symlink all custom modules and remove the custom folder to avoid recursion.
@@ -83,6 +83,6 @@ ln -s $(pwd)/resources/dev_modules lib/modules/custom/dev_modules
 The last step installs the toolkit as we have executed all steps to simulate and
 upgrade from starterkit to toolkit:
 
-```
+```shell
 PROJECT=$(pwd) composer run-script toolkit-install -d ./vendor/ec-europa/toolkit
 ```
