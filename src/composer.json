@@ -1,7 +1,7 @@
 {
     "name": "ec-europa/subsite",
     "require": {
-        "ec-europa/toolkit": "3.*",
+        "ec-europa/toolkit": "dev-develop",
         "ec-europa/dtt-toolkit-upgrade": "dev-master"
     },
     "minimum-stability": "dev",
