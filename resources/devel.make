@@ -58,9 +58,6 @@ projects[uuid_features][subdir] = "develop"
 projects[uuid_features][version] = "1.x-dev"
 projects[uuid_features][patch][] = "https://www.drupal.org/files/issues/uuid_features-support_packaged_file_entities-1229670-36.patch"
 
-; Include the original site.make file.
-includes[] = "site.make"
-
 # Testing for build on Drone.
 
 projects[entity_translation][download][branch] = 7.x-1.x
