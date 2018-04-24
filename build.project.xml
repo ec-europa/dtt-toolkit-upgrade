@@ -40,79 +40,79 @@
     </target>
 
     <!-- Install clean per project id. -->
-    <target name="install-clean">
+    <!--<target name="install-clean">-->
         <!-- Install core first -->
-        <phingcall target="project-subsite-files-setup" />
-        <phingcall target="drush-aliases-generate" />
-        <if>
-            <equals arg1="${project.id}" arg2="cwt"/>
-            <then>
-                <phingcall target="project.install-clean">
-                    <property name="project.install.modules" value="" />
-                </phingcall>
-            </then>
-            <else>
-                <phingcall target="project.install-clean">
-                    <property name="project.install.modules" value="dt_core" />
-                </phingcall>
-            </else>
-        </if>
+    <!--    <phingcall target="project-subsite-files-setup" />-->
+    <!--    <phingcall target="drush-aliases-generate" />-->
+    <!--    <if>-->
+    <!--        <equals arg1="${project.id}" arg2="cwt"/>-->
+    <!--        <then>-->
+    <!--            <phingcall target="project.install-clean">-->
+    <!--                <property name="project.install.modules" value="" />-->
+    <!--            </phingcall>-->
+    <!--        </then>-->
+    <!--        <else>-->
+    <!--            <phingcall target="project.install-clean">-->
+    <!--                <property name="project.install.modules" value="dt_core" />-->
+    <!--            </phingcall>-->
+    <!--        </else>-->
+    <!--    </if>-->
         <!-- Based on the config run a separate install -->
-        <if>
-            <equals arg1="${project.id}" arg2="brp"/>
-            <then>
-                <phingcall target="project-modules-install-en" />
-                <phingcall target="post-install-tasks"/>
-            </then>
-            <elseif>
-                <equals arg1="${project.id}" arg2="beta-political"/>
-                <then>
-                    <phingcall target="project-modules-install-en" />
-                    <drush command="fr" assume="yes" root="${platform.build.dir}" bin="${drush.bin}">
-                        <param>dt_event_search</param>
-                        <param>--force</param>
-                    </drush>
-                    <phingcall target="post-install-tasks"/>
-                </then>
-            </elseif>
-            <elseif>
-                <equals arg1="${project.id}" arg2="cwt"/>
-                <then>
-                    <phingcall target="project-modules-install-en" />
-                    <phingcall target="cc-all"/>
-                    <phingcall target="revert-dt-features">
-                        <property name="subsite.install.modules" value="cwt_core"/>
-                    </phingcall>
-                    <phingcall target="cc-all"/>
-                </then>
-            </elseif>
-            <elseif>
-                <equals arg1="${project.id}" arg2="info"/>
-                <then>
-                    <phingcall target="project-modules-install-en" />
-                    <drush command="fr" assume="yes" root="${platform.build.dir}" bin="${drush.bin}">
-                        <param>dt_event_search</param>
-                        <param>--force</param>
-                    </drush>
-                    <drush command="fr" assume="yes" root="${platform.build.dir}" bin="${drush.bin}">
-                        <param>dt_person</param>
-                        <param>--force</param>
-                    </drush>
-                    <drush command="fr" assume="yes" root="${platform.build.dir}" bin="${drush.bin}">
-                        <param>dt_gallery</param>
-                        <param>--force</param>
-                    </drush>
-                    <phingcall target="post-install-tasks"/>
-                </then>
-            </elseif>
-        </if>
-        <phingcall target="disable-admin-menu"/>
+    <!--    <if>-->
+    <!--        <equals arg1="${project.id}" arg2="brp"/>-->
+    <!--        <then>-->
+    <!--            <phingcall target="project-modules-install-en" />-->
+    <!--            <phingcall target="post-install-tasks"/>-->
+    <!--        </then>-->
+    <!--        <elseif>-->
+    <!--            <equals arg1="${project.id}" arg2="beta-political"/>-->
+    <!--            <then>-->
+    <!--                <phingcall target="project-modules-install-en" />-->
+    <!--                <drush command="fr" assume="yes" root="${platform.build.dir}" bin="${drush.bin}">-->
+    <!--                    <param>dt_event_search</param>-->
+    <!--                    <param>--force</param>-->
+    <!--                </drush>-->
+    <!--                <phingcall target="post-install-tasks"/>-->
+    <!--            </then>-->
+    <!--        </elseif>-->
+    <!--        <elseif>-->
+    <!--            <equals arg1="${project.id}" arg2="cwt"/>-->
+    <!--            <then>-->
+    <!--                <phingcall target="project-modules-install-en" />-->
+    <!--                <phingcall target="cc-all"/>-->
+    <!--                <phingcall target="revert-dt-features">-->
+    <!--                    <property name="subsite.install.modules" value="cwt_core"/>-->
+    <!--                </phingcall>-->
+    <!--                <phingcall target="cc-all"/>-->
+    <!--            </then>-->
+    <!--        </elseif>-->
+    <!--        <elseif>-->
+    <!--            <equals arg1="${project.id}" arg2="info"/>-->
+    <!--            <then>-->
+    <!--                <phingcall target="project-modules-install-en" />-->
+    <!--                <drush command="fr" assume="yes" root="${platform.build.dir}" bin="${drush.bin}">-->
+    <!--                    <param>dt_event_search</param>-->
+    <!--                    <param>--force</param>-->
+    <!--                </drush>-->
+    <!--                <drush command="fr" assume="yes" root="${platform.build.dir}" bin="${drush.bin}">-->
+    <!--                    <param>dt_person</param>-->
+    <!--                    <param>--force</param>-->
+    <!--                </drush>-->
+    <!--                <drush command="fr" assume="yes" root="${platform.build.dir}" bin="${drush.bin}">-->
+    <!--                    <param>dt_gallery</param>-->
+    <!--                    <param>--force</param>-->
+    <!--                </drush>-->
+    <!--                <phingcall target="post-install-tasks"/>-->
+    <!--            </then>-->
+    <!--        </elseif>-->
+    <!--    </if>-->
+    <!--    <phingcall target="disable-admin-menu"/>-->
         <!-- Bad hack to fix issue in javascript behat tests where there is an
-             undefined index. For example check: https://ec.europa.eu/info/events
-             DO NOT FOREGET TO REMOVE QUERY AND CC ALL!!! -->
-        <exec command="${drush.bin} @${drush.alias.default} --root=${platform.build.dir} sqlq 'update system set status=0 where name=&quot;views_ajax_history&quot;';" />
-        <exec command="${drush.bin} @${drush.alias.default} --root=${platform.build.dir} -y cc all" />
-    </target>
+    <!--         undefined index. For example check: https://ec.europa.eu/info/events-->
+    <!--         DO NOT FOREGET TO REMOVE QUERY AND CC ALL!!! -->-->
+    <!--    <exec command="${drush.bin} @${drush.alias.default} --root=${platform.build.dir} sqlq 'update system set status=0 where name=&quot;views_ajax_history&quot;';" />-->
+    <!--    <exec command="${drush.bin} @${drush.alias.default} --root=${platform.build.dir} -y cc all" />-->
+    <!--</target>-->
 
     <!-- Run Behat tests. -->
     <target name="test-behat-exec">
