@@ -54,6 +54,7 @@
             <elseif>
                 <available file="${project.db.file}" type="file" />
                 <then>
+                    <phingcall target="drush-settings-generate" />
                     <phingcall target="project-database-import" />
                 </then>
             </elseif>
