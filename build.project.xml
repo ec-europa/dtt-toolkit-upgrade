@@ -56,7 +56,7 @@
                 <then>
                     <phingcall target="project-database-import" />
                 </then>
-            </else>
+            </elseif>
             <else>
                 <phingcall target="project.install-clean">
                     <property name="project.install.modules" value="dt_core" />
