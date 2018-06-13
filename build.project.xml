@@ -1,6 +1,30 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <project name="My subsite" default="help">
 
+    <target name="drush-sql-import" hidden="true" description="Import a database.">
+        <echo message="Importing database." />
+        <phingcall target="drush-files-dirs-create" />
+        <drush command="sql-cli" root="${build.platform.dir}" alias="@${drush.alias.default}" bin="${toolkit.dir.bin.drush}" verbose="${drush.verbose}" color="${drush.color}">
+            <param>&lt; ${database-file}</param>
+        </drush>
+        <if>
+            <not>
+                <equals arg1="${build.site}" arg2="${project.id}" />
+            </not>
+            <then>
+                <relsym link="${build.platform.dir}/sites/${project.id}" target="${build.subsite.dir}" />
+            </then>
+        </if>
+        <if>
+            <equals arg1="${drush.rr.enabled}" arg2="1" />
+            <then>
+                <phingcall target="drush-registry-rebuild" />
+            </then>
+        </if>
+        <phingcall target="drush-files-dirs-htaccess" />
+        <phingcall target="drush-solr-enable" />
+    </target>
+
     <target name="build-subsite-dev" description="Build a local development version of the site."
         depends="
             subsite-type-dev,
