@@ -6,8 +6,7 @@
             drush-aliases-generate,
             drush-settings-generate,
             project-database-import,
-            reset-filesystem-permissions,
-            drush-cache-reset" />
+            reset-filesystem-permissions" />
 
     <target name="drush-sql-import" hidden="true" description="Import a database.">
         <echo message="Importing database." />
