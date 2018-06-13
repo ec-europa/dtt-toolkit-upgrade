@@ -1,6 +1,14 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <project name="My subsite" default="help">
 
+    <target name="install-clone" description="Install NextEuropa site with sanitized production data."
+        depends="
+            drush-aliases-generate,
+            drush-settings-generate,
+            project-database-import,
+            reset-filesystem-permissions,
+            drush-cache-reset" />
+
     <target name="drush-sql-import" hidden="true" description="Import a database.">
         <echo message="Importing database." />
         <phingcall target="drush-files-dirs-create" />
