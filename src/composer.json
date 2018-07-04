@@ -14,6 +14,7 @@
             "echo \"$(cat vendor/ec-europa/dtt-toolkit-upgrade/src/phpcs-ruleset.xml)\" >> phpcs-ruleset.xml",
             "cp -Rf vendor/ec-europa/dtt-toolkit-upgrade/build.project.* ./",
             "cp -Rf resources/composer.* ./tests",
+            "mv resources/patches tests/",
             "mkdir -p tests/tests",
             "mv tests/src tests/tests/",
             "cp -Rf vendor/ec-europa/dtt-toolkit-upgrade/resources ./",
